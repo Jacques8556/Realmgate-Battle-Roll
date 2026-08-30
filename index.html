@@ -570,6 +570,7 @@ fieldset legend{padding:0; margin-bottom:11px}
 <datalist id="factions"></datalist>
 <datalist id="warlords"></datalist>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 (function(){
 "use strict";
@@ -638,6 +639,11 @@ const state = {
   outcome: null,
   filters: {player:"", faction:"", plan:""}
 };
+/* Supabase holds the shared roll. The publishable key is meant to ship in the
+   page — what a visitor may actually do is decided by the row-level security
+   policies on the `battles` table, not by hiding this string. */
+const SUPABASE_URL = "https://weknqssmmreyvfzzgebc.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_qubbUFgwbWHu0Jl_L5hEgg_MnRQAxIr";
 let DB = null;
 const LS_KEY = "realmgate-battle-roll-v1";
 const SEED_KEY = "realmgate-seeded-ids-v1";
@@ -674,6 +680,27 @@ function sortBattles(list){
 }
 
 /* ============================ storage ============================ */
+/* The page speaks camelCase; the battles table speaks snake_case. Keep the
+   translation in one place so the rest of the code never sees column names. */
+function rowToBattle(r){
+  return normalise({
+    date:r.date, points:r.points, plan:r.plan, season:r.season,
+    aName:r.a_name, aFaction:r.a_faction, aVP:r.a_vp, aList:r.a_list,
+    bName:r.b_name, bFaction:r.b_faction, bVP:r.b_vp, bList:r.b_list,
+    result:r.result, concedeRound:r.concede_round,
+    attacker:r.attacker, first:r.first_turn, createdAt:r.created_at
+  }, r.id);
+}
+function battleToRow(b){
+  return {
+    id:b.id, date:b.date, points:b.points, plan:b.plan, season:b.season,
+    a_name:b.aName, a_faction:b.aFaction, a_vp:b.aVP, a_list:b.aList,
+    b_name:b.bName, b_faction:b.bFaction, b_vp:b.bVP, b_list:b.bList,
+    result:b.result, concede_round:b.concedeRound,
+    attacker:b.attacker, first_turn:b.first, created_at:b.createdAt
+  };
+}
+
 function readLocal(){
   try{
     const raw = localStorage.getItem(LS_KEY);
@@ -701,47 +728,58 @@ function paintNotice(){
   n.classList.toggle("on", parts.length > 0);
 }
 
+/* Pull the whole roll. Returns false when the table can't be read, so callers
+   can decide whether that means "fall back to this browser" or "leave the
+   records already on screen alone". */
+async function pullBattles(){
+  try{
+    const { data, error } = await DB.from("battles")
+      .select("*").order("date", {ascending:false}).limit(1000);
+    if(error) return false;
+    state.battles = sortBattles((data || []).map(rowToBattle));
+    renderAll();
+    return true;
+  }catch(e){ return false; }
+}
+
 async function initStore(){
   state.battles = sortBattles(readLocal());
   renderAll();
-  let db = null;
-  try{
-    if(window.claude && typeof window.claude.use === "function"){
-      db = await window.claude.use("db");
-    }
-  }catch(e){ db = null; }
 
-  if(!db){
-    notice("Shared storage is not reachable in this view — records are being kept in this browser only.");
+  if(!window.supabase || typeof window.supabase.createClient !== "function"){
+    notice("Could not load the Supabase client — records are being kept in this browser only.");
     return;
   }
-  DB = db;
+  DB = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
   const local = state.battles.slice();
-  db.collection("battles").limit(1000).onSnapshot(snap => {
-    state.battles = sortBattles(snap.docs.map(d => normalise(d.data(), d.id)));
-    notice("");
-    renderAll();
-  }, err => {
+  if(!await pullBattles()){
     DB = null;
-    notice(err && err.code === "revoked"
-      ? "The shared roll is no longer available in this view — falling back to this browser."
-      : "Could not reach the shared roll — falling back to this browser.");
+    notice("Could not reach the shared roll — falling back to this browser.");
     state.battles = sortBattles(local);
     renderAll();
-  });
+    return;
+  }
+  notice("");
+
+  /* Live updates when realtime is enabled for the table; the roll still works
+     without it, each device just sees other people's battles on next load. */
+  try{
+    DB.channel("battles-roll")
+      .on("postgres_changes", {event:"*", schema:"public", table:"battles"},
+        () => pullBattles())
+      .subscribe();
+  }catch(e){}
 }
 
 async function saveBattle(b){
   if(DB){
-    try{
-      const { id, ...body } = b;
-      await DB.doc("battles/" + id).set(body);
-      return true;
-    }catch(e){
-      return e && e.code === "quota_exceeded"
-        ? "The roll is full. Delete some old records before adding more."
-        : "Could not save to the shared roll. Try again in a moment.";
-    }
+    const { error } = await DB.from("battles").upsert(battleToRow(b));
+    if(error) return error.code === "42501" || error.code === "PGRST301"
+      ? "This roll does not accept new records from here."
+      : "Could not save to the shared roll. Try again in a moment.";
+    await pullBattles();
+    return true;
   }
   const i = state.battles.findIndex(x => x.id === b.id);
   if(i >= 0) state.battles[i] = b; else state.battles.push(b);
@@ -751,8 +789,10 @@ async function saveBattle(b){
 }
 async function deleteBattle(id){
   if(DB){
-    try{ await DB.doc("battles/" + id).delete(); return true; }
-    catch(e){ return "Could not remove that record. Try again in a moment."; }
+    const { error } = await DB.from("battles").delete().eq("id", id);
+    if(error) return "Could not remove that record. Try again in a moment.";
+    await pullBattles();
+    return true;
   }
   state.battles = state.battles.filter(x => x.id !== id);
   writeLocal(); renderAll();
@@ -1284,15 +1324,26 @@ async function seedExamples(){
   const btn = document.querySelector('[data-act="sample"]');
   if(btn){ btn.disabled = true; btn.textContent = "Filling the roll…"; }
   const ids = [];
-  for(let i = 0; i < rows.length; i++){
-    const r = rows[i];
+  const battles = rows.map((r, i) => {
     const id = uid(); ids.push(id);
-    await saveBattle(normalise({
+    return normalise({
       id, date:r[0], points:2000, plan:r[1],
       aName:r[2], aFaction:r[3], aVP:r[4],
       bName:r[5], bFaction:r[6], bVP:r[7],
       result:r[8], attacker:r[9], first:r[10], createdAt: Date.now() + i
-    }));
+    });
+  });
+  /* One round trip for the whole batch rather than a write-and-refetch each. */
+  if(DB){
+    const { error } = await DB.from("battles").upsert(battles.map(battleToRow));
+    if(error){
+      if(btn){ btn.disabled = false; btn.textContent = "Fill with example battles"; }
+      notice("Could not add the example battles to the shared roll.");
+      return;
+    }
+    await pullBattles();
+  }else{
+    for(const b of battles) await saveBattle(b);
   }
   rememberSeeded(ids);
   paintNotice();
