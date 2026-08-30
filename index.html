@@ -908,7 +908,7 @@ function battleCard(b){
       '<b class="' + (aWon ? "dim" : "") + '">' + b.bVP + '</b>'
     : '<b class="dim" style="font-size:13px">' + (draw ? "DRAW" : "NO VP") + '</b>';
   const bits = [];
-  bits.push('<span class="meta-date">' + fmtDate(b.date) + '</span>');
+  bits.push('<span class="meta-date">' + esc(fmtDate(b.date)) + '</span>');
   if(b.plan) bits.push('<span><span class="k">Battleplan</span> ' + esc(b.plan) + '</span>');
   bits.push('<span><span class="k">Points</span> ' + b.points.toLocaleString() + '</span>');
   if(b.attacker){
@@ -927,7 +927,7 @@ function battleCard(b){
     '<div class="battle-main">' + side("a", aWon) +
       '<div class="score">' + scoreInner + '</div>' + side("b", bWon) + '</div>' +
     '<div class="battle-foot">' + bits.join("") +
-      '<span class="grow"><button type="button" class="btn btn-ghost btn-sm" data-edit="' + b.id + '">Edit</button></span>' +
+      '<span class="grow"><button type="button" class="btn btn-ghost btn-sm" data-edit="' + esc(b.id) + '">Edit</button></span>' +
     '</div>' +
     armyListDetails(b.aName, b.aList) + armyListDetails(b.bName, b.bList) +
     '</article>';
