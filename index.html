@@ -548,14 +548,15 @@ fieldset legend{padding:0; margin-bottom:11px}
         <legend class="eyebrow">Deployment</legend>
         <div class="grid g2">
           <div class="field">
-            <label for="m-deploy">Chose territory</label>
-            <select id="m-deploy"><option value="">Not recorded</option></select>
+            <label for="m-attacker">Attacker</label>
+            <select id="m-attacker"><option value="">Not recorded</option></select>
           </div>
           <div class="field">
             <label for="m-first">Took the first turn</label>
             <select id="m-first"><option value="">Not recorded</option></select>
           </div>
         </div>
+        <div class="section-note" style="margin-top:7px">Naming the attacker automatically makes the other side the defender.</div>
       </fieldset>
     </div>
     <div class="sheet-foot">
@@ -661,7 +662,8 @@ function normalise(raw, id){
     bList: b.bList || "",
     result: b.result === "a" || b.result === "b" || b.result === "draw" ? b.result : "draw",
     concedeRound: [1,2,3,4,5].includes(+b.concedeRound) ? +b.concedeRound : null,
-    deploy: b.deploy === "a" || b.deploy === "b" ? b.deploy : "",
+    attacker: b.attacker === "a" || b.attacker === "b" ? b.attacker
+      : (b.deploy === "a" || b.deploy === "b" ? b.deploy : ""),
     first: b.first === "a" || b.first === "b" ? b.first : "",
     createdAt: b.createdAt || 0
   };
@@ -869,7 +871,11 @@ function battleCard(b){
   bits.push('<span class="meta-date">' + fmtDate(b.date) + '</span>');
   if(b.plan) bits.push('<span><span class="k">Battleplan</span> ' + esc(b.plan) + '</span>');
   bits.push('<span><span class="k">Points</span> ' + b.points.toLocaleString() + '</span>');
-  if(b.deploy) bits.push('<span><span class="k">Territory</span> ' + esc(b[b.deploy+"Name"]) + '</span>');
+  if(b.attacker){
+    const defender = b.attacker === "a" ? "b" : "a";
+    bits.push('<span><span class="k">Attacker</span> ' + esc(b[b.attacker+"Name"]) + '</span>');
+    bits.push('<span><span class="k">Defender</span> ' + esc(b[defender+"Name"]) + '</span>');
+  }
   if(b.first) bits.push('<span><span class="k">First turn</span> ' + esc(b[b.first+"Name"]) + '</span>');
   if(draw) bits.push('<span><span class="k">Result</span> Draw</span>');
   if(b.concedeRound){
@@ -1087,7 +1093,7 @@ const M = {
   aName:$("#m-a-name"), aFaction:$("#m-a-faction"), aVP:$("#m-a-vp"), aList:$("#m-a-list"),
   bName:$("#m-b-name"), bFaction:$("#m-b-faction"), bVP:$("#m-b-vp"), bList:$("#m-b-list"),
   concedeWrap:$("#m-concede-wrap"), concedeRound:$("#m-concede-round"),
-  deploy:$("#m-deploy"), first:$("#m-first"), err:$("#m-err")
+  attacker:$("#m-attacker"), first:$("#m-first"), err:$("#m-err")
 };
 
 /* Rebuild the Battleplan options for a season. `keep` preserves a stored plan
@@ -1121,7 +1127,7 @@ function refreshSideLabels(){
   const btns = document.querySelectorAll("#m-outcome button");
   btns[0].textContent = a + " wins";
   btns[2].textContent = b + " wins";
-  [M.deploy, M.first].forEach(sel => {
+  [M.attacker, M.first].forEach(sel => {
     const keep = sel.value;
     sel.innerHTML = '<option value="">Not recorded</option>' +
       '<option value="a">' + esc(a) + '</option><option value="b">' + esc(b) + '</option>';
@@ -1146,7 +1152,7 @@ function openMuster(battle){
   setOutcome(battle ? b.result : null);
   M.concedeRound.value = b.concedeRound || "";
   refreshSideLabels();
-  M.deploy.value = b.deploy; M.first.value = b.first;
+  M.attacker.value = b.attacker; M.first.value = b.first;
   $("#sheet-title").textContent = battle ? "Amend the record" : "Log a battle";
   $("#m-save").textContent = battle ? "Save changes" : "Enter into the roll";
   $("#m-delete").hidden = !battle;
@@ -1189,7 +1195,7 @@ $("#muster").addEventListener("submit", async e => {
     bList: M.bList.value.trim(),
     result: state.outcome,
     concedeRound: M.concedeRound.value === "" ? null : +M.concedeRound.value,
-    deploy: M.deploy.value, first: M.first.value,
+    attacker: M.attacker.value, first: M.first.value,
     createdAt: state.editing
       ? (state.battles.find(x => x.id === state.editing) || {}).createdAt || Date.now()
       : Date.now()
@@ -1285,7 +1291,7 @@ async function seedExamples(){
       id, date:r[0], points:2000, plan:r[1],
       aName:r[2], aFaction:r[3], aVP:r[4],
       bName:r[5], bFaction:r[6], bVP:r[7],
-      result:r[8], deploy:r[9], first:r[10], createdAt: Date.now() + i
+      result:r[8], attacker:r[9], first:r[10], createdAt: Date.now() + i
     }));
   }
   rememberSeeded(ids);
