@@ -1,0 +1,39 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Let the deploy publish to Pages via OIDC; nothing here needs write access
+# to the repository contents themselves.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# A queued deploy should wait for the running one rather than race it, but
+# superseded queued runs can be dropped.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+
+      # The site is a single self-contained index.html at the repository root,
+      # so the repository itself is the artifact — no build step.
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
