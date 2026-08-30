@@ -1,0 +1,1251 @@
+<title>Realmgate Battle Roll</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Archivo:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#E9E5DD; --panel:#FBF9F6; --panel-2:#F2EEE7; --panel-3:#E4DFD5;
+  --line:#D8D2C6; --line-strong:#BDB4A3;
+  --fg:#1C1926; --fg-muted:#655E71; --fg-faint:#8D8699;
+  --gold:#8A6318; --gold-ink:#6E4E10; --on-gold:#FFFFFF; --gold-soft:rgba(138,99,24,.10); --gold-line:rgba(138,99,24,.32);
+  --win:#3C7746; --loss:#A5423A; --draw:#7A7488;
+  --ord:#3A6699; --cha:#A8382F; --dea:#6F4F9B; --des:#437C3E; --una:#7A7488;
+  --shadow:0 1px 2px rgba(28,25,38,.06),0 8px 24px -12px rgba(28,25,38,.18);
+  --radius:3px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#131019; --panel:#1B1824; --panel-2:#221E2D; --panel-3:#2A2536;
+    --line:#2E2939; --line-strong:#453D56;
+    --fg:#EDE9E2; --fg-muted:#9C95AA; --fg-faint:#726A85;
+    --gold:#DCB264; --gold-ink:#EBC988; --on-gold:#17131F; --gold-soft:rgba(220,178,100,.11); --gold-line:rgba(220,178,100,.34);
+    --win:#61AE69; --loss:#D26B60; --draw:#8B8399;
+    --ord:#5E8FCC; --cha:#D2564A; --dea:#9B78D1; --des:#63AC5B; --una:#8B8399;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#131019; --panel:#1B1824; --panel-2:#221E2D; --panel-3:#2A2536;
+  --line:#2E2939; --line-strong:#453D56;
+  --fg:#EDE9E2; --fg-muted:#9C95AA; --fg-faint:#726A85;
+  --gold:#DCB264; --gold-ink:#EBC988; --on-gold:#17131F; --gold-soft:rgba(220,178,100,.11); --gold-line:rgba(220,178,100,.34);
+  --win:#61AE69; --loss:#D26B60; --draw:#8B8399;
+  --ord:#5E8FCC; --cha:#D2564A; --dea:#9B78D1; --des:#63AC5B; --una:#8B8399;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--fg);
+  font-family:Archivo,"Helvetica Neue",Arial,sans-serif;
+  font-size:15px; line-height:1.5; margin:0;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{margin:0; text-wrap:balance}
+button,input,select{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--gold); outline-offset:2px}
+.num{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums}
+.eyebrow{
+  font-size:10.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--fg-faint);
+}
+
+/* ---------- chrome ---------- */
+.topbar{
+  position:sticky; top:0; z-index:40;
+  background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
+}
+.topbar-in{
+  max-width:1180px; margin:0 auto; padding:0 22px;
+  display:flex; align-items:center; gap:26px; min-height:62px; flex-wrap:wrap;
+}
+.wordmark{display:flex; align-items:baseline; gap:10px; margin-right:auto}
+.wordmark .mark{
+  font-family:Cinzel,Georgia,serif; font-weight:700; font-size:19px;
+  letter-spacing:.06em; color:var(--fg);
+}
+.wordmark .sub{
+  font-size:10.5px; letter-spacing:.15em; text-transform:uppercase;
+  color:var(--gold); font-weight:600;
+}
+nav.tabs{display:flex; gap:2px}
+.tab{
+  background:none; border:0; cursor:pointer; padding:8px 13px;
+  font-size:12px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--fg-muted); border-bottom:2px solid transparent; margin-bottom:-1px;
+}
+.tab:hover{color:var(--fg)}
+.tab[aria-selected="true"]{color:var(--fg); border-bottom-color:var(--gold)}
+
+.btn{
+  cursor:pointer; border-radius:var(--radius); border:1px solid var(--line-strong);
+  background:var(--panel); padding:8px 14px; font-size:12.5px; font-weight:600;
+  letter-spacing:.05em; transition:background .14s,border-color .14s;
+}
+.btn:hover{background:var(--panel-2); border-color:var(--gold-line)}
+.btn-primary{
+  background:var(--gold); border-color:var(--gold);
+  color:var(--on-gold); text-transform:uppercase; letter-spacing:.1em; font-size:11.5px; padding:9px 16px;
+}
+.btn-primary:hover{filter:brightness(1.08); background:var(--gold)}
+.btn-ghost{background:none; border-color:transparent; color:var(--fg-muted); padding:6px 9px}
+.btn-ghost:hover{background:var(--panel-2); color:var(--fg)}
+.btn-sm{padding:5px 10px; font-size:11.5px}
+
+main{max-width:1180px; margin:0 auto; padding:30px 22px 90px}
+.view{display:none}
+.view.active{display:block}
+
+.section-head{
+  display:flex; align-items:flex-end; justify-content:space-between;
+  gap:16px; flex-wrap:wrap; margin-bottom:14px;
+}
+.section-head h2{
+  font-family:Cinzel,Georgia,serif; font-size:15px; font-weight:600;
+  letter-spacing:.1em; text-transform:uppercase;
+}
+.section-note{font-size:12.5px; color:var(--fg-faint)}
+
+.panel{
+  background:var(--panel); border:1px solid var(--line);
+  border-radius:var(--radius); box-shadow:var(--shadow);
+}
+.scroll-x{overflow-x:auto}
+
+/* ---------- alliance chips ---------- */
+.army{display:inline-flex; align-items:center; gap:7px; min-width:0; vertical-align:middle}
+.army .pip{width:3px; height:14px; border-radius:2px; background:var(--una); flex:none}
+.army .name{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.ga-order .pip{background:var(--ord)} .ga-chaos .pip{background:var(--cha)}
+.ga-death .pip{background:var(--dea)} .ga-destruction .pip{background:var(--des)}
+.ga-order{--ga:var(--ord)} .ga-chaos{--ga:var(--cha)}
+.ga-death{--ga:var(--dea)} .ga-destruction{--ga:var(--des)} .ga-none{--ga:var(--una)}
+
+/* ---------- tables ---------- */
+table{border-collapse:collapse; width:100%; font-size:13.5px}
+th{
+  text-align:left; font-size:10.5px; font-weight:700; letter-spacing:.13em;
+  text-transform:uppercase; color:var(--fg-faint);
+  padding:11px 12px; border-bottom:1px solid var(--line-strong); white-space:nowrap;
+}
+td{padding:11px 12px; border-bottom:1px solid var(--line); vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+th.r,td.r{text-align:right}
+th.c,td.c{text-align:center}
+tbody tr.clickable{cursor:pointer}
+tbody tr.clickable:hover{background:var(--panel-2)}
+
+.rank{font-family:"IBM Plex Mono",monospace; color:var(--fg-faint); font-size:12px; width:34px}
+.rank.top{color:var(--gold); font-weight:600}
+.warlord{font-weight:600; letter-spacing:-.005em}
+.provisional{
+  font-size:9.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--fg-faint); border:1px solid var(--line-strong);
+  border-radius:2px; padding:1px 5px; margin-left:8px; vertical-align:1px;
+}
+.wl{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; white-space:nowrap}
+.wl .w{color:var(--win); font-weight:600}
+.wl .l{color:var(--loss); font-weight:600}
+.wl .d{color:var(--draw)}
+.wl .sep{color:var(--fg-faint); margin:0 2px}
+
+.rate{display:flex; align-items:center; gap:9px; justify-content:flex-end}
+.rate .val{font-family:"IBM Plex Mono",monospace; font-weight:600; font-variant-numeric:tabular-nums}
+.meter{width:52px; height:4px; border-radius:2px; background:var(--panel-3); overflow:hidden; flex:none}
+.meter i{display:block; height:100%; background:var(--gold); border-radius:2px}
+
+.form-dots{display:inline-flex; gap:3px}
+.dot{
+  width:15px; height:15px; border-radius:2px; display:inline-flex;
+  align-items:center; justify-content:center;
+  font-size:9px; font-weight:700; font-family:"IBM Plex Mono",monospace;
+}
+.dot.w{background:color-mix(in srgb,var(--win) 20%,transparent); color:var(--win)}
+.dot.l{background:color-mix(in srgb,var(--loss) 20%,transparent); color:var(--loss)}
+.dot.d{background:var(--panel-3); color:var(--fg-muted)}
+.streak{font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:600}
+.streak.w{color:var(--win)} .streak.l{color:var(--loss)} .streak.d{color:var(--fg-muted)}
+.diff.pos{color:var(--win)} .diff.neg{color:var(--loss)}
+
+/* ---------- battle records ---------- */
+.battle-list{display:flex; flex-direction:column; gap:9px}
+.battle{
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); overflow:hidden;
+}
+.battle-main{display:grid; grid-template-columns:1fr auto 1fr; align-items:stretch}
+.side{padding:15px 18px; display:flex; flex-direction:column; gap:5px; min-width:0}
+.side.a{text-align:right; align-items:flex-end; border-left:3px solid var(--ga,var(--una))}
+.side.b{border-right:3px solid var(--ga,var(--una))}
+.side .who{
+  font-weight:600; font-size:15px; letter-spacing:-.01em;
+  background:none; border:0; padding:0; cursor:pointer; text-align:inherit;
+  max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.side .who:hover{color:var(--gold-ink); text-decoration:underline; text-underline-offset:3px}
+.side.won .who{color:var(--gold-ink)}
+.side .army{font-size:12.5px; color:var(--fg-muted)}
+.side.a .army{flex-direction:row-reverse}
+.laurel{
+  font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; font-weight:700;
+  color:var(--gold); display:flex; align-items:center; gap:6px;
+}
+.score{
+  display:flex; align-items:center; justify-content:center; gap:11px;
+  padding:15px 20px; background:var(--panel-2);
+  border-left:1px solid var(--line); border-right:1px solid var(--line);
+  font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums;
+}
+.score b{font-size:22px; font-weight:600; letter-spacing:-.02em}
+.score b.dim{color:var(--fg-faint); font-weight:400}
+.score .dash{color:var(--fg-faint); font-size:14px}
+.battle-foot{
+  display:flex; align-items:center; gap:8px 18px; flex-wrap:wrap;
+  padding:9px 18px; border-top:1px solid var(--line);
+  background:var(--panel-2); font-size:11.5px; color:var(--fg-muted);
+}
+.battle-foot .k{color:var(--fg-faint); letter-spacing:.05em}
+.battle-foot .grow{margin-left:auto; display:flex; gap:2px}
+.meta-date{font-family:"IBM Plex Mono",monospace; color:var(--fg); font-weight:500}
+
+/* ---------- warlord profile ---------- */
+.hero{
+  padding:26px 24px; display:flex; gap:32px; align-items:flex-end;
+  flex-wrap:wrap; border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,var(--gold-soft),transparent);
+}
+.hero h2{
+  font-family:Cinzel,Georgia,serif; font-size:30px; font-weight:600;
+  letter-spacing:.02em; line-height:1.1;
+}
+.hero .record{
+  font-family:"IBM Plex Mono",monospace; font-size:14px; margin-top:7px; color:var(--fg-muted);
+}
+.bigrate{margin-left:auto; text-align:right}
+.bigrate .v{
+  font-family:"IBM Plex Mono",monospace; font-size:38px; font-weight:600;
+  letter-spacing:-.03em; line-height:1; color:var(--gold-ink);
+}
+.tiles{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr));
+  border-bottom:1px solid var(--line);
+}
+.tile{padding:15px 18px; border-right:1px solid var(--line)}
+.tile:last-child{border-right:0}
+.tile .v{
+  font-family:"IBM Plex Mono",monospace; font-size:21px; font-weight:600;
+  letter-spacing:-.02em; margin-top:5px; display:block;
+}
+.subsec{padding:20px 22px; border-bottom:1px solid var(--line)}
+.subsec:last-child{border-bottom:0}
+.subsec h3{
+  font-family:Cinzel,Georgia,serif; font-size:12.5px; font-weight:600;
+  letter-spacing:.11em; text-transform:uppercase; margin-bottom:3px;
+}
+.subsec .hint{font-size:12px; color:var(--fg-faint); margin-bottom:12px}
+.subsec table{margin:0 -4px; width:calc(100% + 8px); max-width:760px}
+.subsec th{padding-top:0}
+.subsec .scroll-x{max-width:768px}
+
+.picker{display:flex; gap:7px; flex-wrap:wrap; margin-bottom:20px}
+.pick{
+  cursor:pointer; border:1px solid var(--line-strong); background:var(--panel);
+  border-radius:var(--radius); padding:6px 12px; font-size:13px; font-weight:500;
+}
+.pick:hover{border-color:var(--gold-line)}
+.pick[aria-pressed="true"]{background:var(--gold); border-color:var(--gold); color:var(--on-gold); font-weight:600}
+
+/* ---------- empty / status ---------- */
+.empty{
+  padding:56px 28px; text-align:center; color:var(--fg-muted);
+  border:1px dashed var(--line-strong); border-radius:var(--radius); background:var(--panel);
+}
+.empty h3{
+  font-family:Cinzel,Georgia,serif; font-size:16px; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--fg); margin-bottom:8px;
+}
+.empty p{margin:0 auto 18px; max-width:44ch; font-size:13.5px}
+.empty .acts{display:flex; gap:9px; justify-content:center; flex-wrap:wrap}
+.notice{
+  display:none; align-items:center; gap:10px; padding:9px 14px; margin-bottom:18px;
+  border:1px solid var(--line-strong); border-left:3px solid var(--gold);
+  border-radius:var(--radius); background:var(--panel); font-size:12.5px; color:var(--fg-muted);
+  flex-wrap:wrap;
+}
+.notice.on{display:flex}
+
+/* ---------- muster form ---------- */
+.overlay{
+  position:fixed; inset:0; z-index:60; background:rgba(10,8,14,.6);
+  backdrop-filter:blur(3px); display:flex; align-items:flex-start;
+  justify-content:center; padding:5vh 18px 40px; overflow-y:auto;
+}
+.overlay[hidden]{display:none}
+.sheet{
+  width:100%; max-width:660px; background:var(--panel);
+  border:1px solid var(--line-strong); border-radius:var(--radius);
+  box-shadow:0 24px 70px -20px rgba(0,0,0,.6);
+}
+.sheet-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 20px; border-bottom:1px solid var(--line);
+}
+.sheet-head h2{
+  font-family:Cinzel,Georgia,serif; font-size:14px; font-weight:600;
+  letter-spacing:.11em; text-transform:uppercase;
+}
+.sheet-body{padding:20px}
+fieldset{border:0; padding:0; margin:0 0 20px}
+fieldset legend{padding:0; margin-bottom:11px}
+.grid{display:grid; gap:13px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:1fr 1fr 1fr}
+.field{display:flex; flex-direction:column; gap:5px; min-width:0}
+.field label{
+  font-size:10.5px; font-weight:700; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--fg-faint);
+}
+.field input,.field select{
+  background:var(--panel-2); border:1px solid var(--line-strong);
+  border-radius:var(--radius); padding:8px 10px; font-size:14px; width:100%;
+}
+.field input:focus,.field select:focus{border-color:var(--gold-line)}
+.field input[type="number"]{font-family:"IBM Plex Mono",monospace}
+.combatant{
+  border:1px solid var(--line); border-left:3px solid var(--ga,var(--una));
+  border-radius:var(--radius); padding:14px; background:var(--panel-2);
+}
+.combatant .eyebrow{margin-bottom:10px}
+.outcome{display:flex; gap:0; border:1px solid var(--line-strong); border-radius:var(--radius); overflow:hidden}
+.outcome button{
+  flex:1; background:var(--panel-2); border:0; border-right:1px solid var(--line-strong);
+  padding:9px 6px; cursor:pointer; font-size:12.5px; font-weight:600;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.outcome button:last-child{border-right:0}
+.outcome button:hover{background:var(--panel-3)}
+.outcome button[aria-pressed="true"]{background:var(--gold); color:var(--on-gold)}
+.sheet-foot{
+  display:flex; gap:9px; align-items:center; justify-content:flex-end;
+  padding:14px 20px; border-top:1px solid var(--line); background:var(--panel-2);
+}
+.sheet-foot .err{margin-right:auto; color:var(--loss); font-size:12.5px; font-weight:500}
+
+.filters{display:flex; gap:9px; flex-wrap:wrap; align-items:center; margin-bottom:16px}
+.filters select,.filters input{
+  background:var(--panel); border:1px solid var(--line-strong);
+  border-radius:var(--radius); padding:6px 10px; font-size:13px;
+}
+
+@media (max-width:720px){
+  .battle-main{grid-template-columns:1fr}
+  .side.a{text-align:left; align-items:flex-start; border-left:3px solid var(--ga,var(--una))}
+  .side.a .army{flex-direction:row}
+  .side.b{border-right:0; border-left:3px solid var(--ga,var(--una))}
+  .score{border:1px solid var(--line); border-width:1px 0; justify-content:flex-start; padding:10px 18px}
+  .g2,.g3{grid-template-columns:1fr}
+  .hero{padding:20px}
+  .bigrate{margin-left:0}
+  .tile{border-right:0; border-bottom:1px solid var(--line)}
+}
+</style>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="wordmark">
+      <span class="mark">Realmgate Battle Roll</span>
+      <span class="sub" id="ga-count">—</span>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Ledger sections">
+      <button class="tab" role="tab" data-view="standings" aria-selected="true">Standings</button>
+      <button class="tab" role="tab" data-view="battles" aria-selected="false">Battles</button>
+      <button class="tab" role="tab" data-view="warlords" aria-selected="false">Warlords</button>
+    </nav>
+    <button class="btn btn-primary" id="open-muster">Log a battle</button>
+  </div>
+</header>
+
+<main>
+  <div class="notice" id="notice"></div>
+
+  <!-- STANDINGS -->
+  <section class="view active" id="view-standings" role="tabpanel">
+    <div class="section-head">
+      <div>
+        <h2>Standings</h2>
+        <div class="section-note">Ranked by win rate. Three battles fought before a warlord is ranked in earnest.</div>
+      </div>
+      <div class="eyebrow" id="standings-span"></div>
+    </div>
+    <div class="panel scroll-x" id="standings-wrap"></div>
+  </section>
+
+  <!-- BATTLES -->
+  <section class="view" id="view-battles" role="tabpanel">
+    <div class="section-head">
+      <div>
+        <h2>Battle Log</h2>
+        <div class="section-note">Every engagement, most recent first.</div>
+      </div>
+    </div>
+    <div class="filters">
+      <select id="f-player"><option value="">All warlords</option></select>
+      <select id="f-faction"><option value="">All armies</option></select>
+      <select id="f-plan"><option value="">All battleplans</option></select>
+      <button class="btn btn-sm btn-ghost" id="f-clear">Reset filters</button>
+    </div>
+    <div id="battles-wrap"></div>
+  </section>
+
+  <!-- WARLORDS -->
+  <section class="view" id="view-warlords" role="tabpanel">
+    <div class="section-head">
+      <div>
+        <h2>Warlords</h2>
+        <div class="section-note">Choose a warlord for their full record, armies fielded, and head-to-head matchups.</div>
+      </div>
+    </div>
+    <div class="picker" id="warlord-picker"></div>
+    <div id="warlord-wrap"></div>
+  </section>
+</main>
+
+<!-- MUSTER SHEET -->
+<div class="overlay" id="overlay" hidden>
+  <form class="sheet" id="muster" autocomplete="off">
+    <div class="sheet-head">
+      <h2 id="sheet-title">Log a battle</h2>
+      <button type="button" class="btn btn-ghost btn-sm" id="close-muster" aria-label="Close">Close</button>
+    </div>
+    <div class="sheet-body">
+      <fieldset>
+        <legend class="eyebrow">The engagement</legend>
+        <div class="grid g3">
+          <div class="field">
+            <label for="m-date">Date</label>
+            <input type="date" id="m-date" required>
+          </div>
+          <div class="field">
+            <label for="m-points">Points level</label>
+            <select id="m-points">
+              <option value="1000">1,000</option>
+              <option value="1500">1,500</option>
+              <option value="2000" selected>2,000</option>
+              <option value="2500">2,500</option>
+              <option value="3000">3,000</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="m-season">GHB season</label>
+            <select id="m-season">
+              <option value="">—</option>
+              <option value="2026-27">2026–27</option>
+              <option value="2025-26">2025–26</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" style="margin-top:13px">
+          <label for="m-plan">Battleplan</label>
+          <select id="m-plan">
+            <option value="">Choose a season first</option>
+          </select>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend class="eyebrow">The combatants</legend>
+        <div class="grid g2">
+          <div class="combatant" id="c-a">
+            <div class="eyebrow">Side one</div>
+            <div class="grid">
+              <div class="field">
+                <label for="m-a-name">Warlord</label>
+                <input id="m-a-name" list="warlords" required placeholder="Name">
+              </div>
+              <div class="field">
+                <label for="m-a-faction">Army</label>
+                <input id="m-a-faction" list="factions" placeholder="Faction">
+              </div>
+              <div class="field">
+                <label for="m-a-vp">Victory points</label>
+                <input type="number" id="m-a-vp" min="0" max="99" placeholder="0">
+              </div>
+            </div>
+          </div>
+          <div class="combatant" id="c-b">
+            <div class="eyebrow">Side two</div>
+            <div class="grid">
+              <div class="field">
+                <label for="m-b-name">Warlord</label>
+                <input id="m-b-name" list="warlords" required placeholder="Name">
+              </div>
+              <div class="field">
+                <label for="m-b-faction">Army</label>
+                <input id="m-b-faction" list="factions" placeholder="Faction">
+              </div>
+              <div class="field">
+                <label for="m-b-vp">Victory points</label>
+                <input type="number" id="m-b-vp" min="0" max="99" placeholder="0">
+              </div>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend class="eyebrow">Outcome</legend>
+        <div class="outcome" id="m-outcome" role="group" aria-label="Result">
+          <button type="button" data-r="a" aria-pressed="false">Side one wins</button>
+          <button type="button" data-r="draw" aria-pressed="false">Draw</button>
+          <button type="button" data-r="b" aria-pressed="false">Side two wins</button>
+        </div>
+        <div class="section-note" style="margin-top:7px">Set from victory points as you type. Override it for a concession or a tabling.</div>
+      </fieldset>
+
+      <fieldset style="margin-bottom:0">
+        <legend class="eyebrow">Deployment</legend>
+        <div class="grid g2">
+          <div class="field">
+            <label for="m-deploy">Chose territory</label>
+            <select id="m-deploy"><option value="">Not recorded</option></select>
+          </div>
+          <div class="field">
+            <label for="m-first">Took the first turn</label>
+            <select id="m-first"><option value="">Not recorded</option></select>
+          </div>
+        </div>
+      </fieldset>
+    </div>
+    <div class="sheet-foot">
+      <span class="err" id="m-err"></span>
+      <button type="button" class="btn btn-ghost btn-sm" id="m-delete" hidden>Delete record</button>
+      <button type="submit" class="btn btn-primary" id="m-save">Enter into the roll</button>
+    </div>
+  </form>
+</div>
+
+<datalist id="factions"></datalist>
+<datalist id="warlords"></datalist>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================ reference data ============================ */
+const FACTIONS = {
+  "Cities of Sigmar":"order","Daughters of Khaine":"order","Fyreslayers":"order",
+  "Idoneth Deepkin":"order","Kharadron Overlords":"order","Lumineth Realm-lords":"order",
+  "Seraphon":"order","Stormcast Eternals":"order","Sylvaneth":"order",
+  "Blades of Khorne":"chaos","Disciples of Tzeentch":"chaos","Hedonites of Slaanesh":"chaos",
+  "Maggotkin of Nurgle":"chaos","Skaven":"chaos","Slaves to Darkness":"chaos",
+  "Beasts of Chaos":"chaos","Legion of Chaos Ascendant":"chaos",
+  "Flesh-eater Courts":"death","Nighthaunt":"death","Ossiarch Bonereapers":"death",
+  "Soulblight Gravelords":"death",
+  "Gloomspite Gitz":"destruction","Ogor Mawtribes":"destruction","Sons of Behemat":"destruction",
+  "Orruk Warclans":"destruction","Ironjawz":"destruction","Kruleboyz":"destruction",
+  "Bonesplitterz":"destruction","Gitmob Grots":"destruction"
+};
+const GA_LABEL = {order:"Order",chaos:"Chaos",death:"Death",destruction:"Destruction",none:"Unaligned"};
+const SEASON_PLANS = {
+  "2026-27": ["Into the Fire","Bloodstained Coasts","Avalanche of Ash","Caverns of Slaughter",
+    "What's Yours Is Ours","Hidden Under Ash-Clouds","Warped Ruins","Curse of the Gnaw",
+    "Seize the Embers","Treacherous Ground","Escape from the Coast","Power of the Realms"],
+  "2025-26": ["Passing Seasons","Paths of the Fey","Roiling Roots","Cyclic Shifts",
+    "Surge of Slaughter","Linked Ley Lines","Noxious Nexus","The Liferoots",
+    "Bountiful Equinox","Lifecycle","Creeping Corruption","Grasp of Thorns"]
+};
+function seasonForPlan(plan){
+  for(const s of Object.keys(SEASON_PLANS)) if(SEASON_PLANS[s].includes(plan)) return s;
+  return "";
+}
+
+const ga = f => FACTIONS[f] || "none";
+
+/* ============================ helpers ============================ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pct = (n,d) => d ? Math.round((n/d)*1000)/10 : 0;
+const fmtPct = (n,d) => d ? pct(n,d).toFixed(1) + "%" : "—";
+const round1 = n => (Math.round(n*10)/10).toFixed(1);
+const signed = n => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(Math.round(n*10)/10);
+const uid = () => "b" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const today = () => new Date().toISOString().slice(0,10);
+function fmtDate(iso){
+  if(!iso) return "—";
+  const p = iso.split("-");
+  if(p.length !== 3) return iso;
+  const M = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return p[2].replace(/^0/,"") + " " + M[(+p[1]||1)-1] + " " + p[0];
+}
+const titleCase = s => s.trim().replace(/\s+/g," ").replace(/\b[a-z]/g, c => c.toUpperCase());
+
+/* Canonicalise a typed name/faction against what is already on the roll. */
+function canon(value, known){
+  const v = String(value || "").trim().replace(/\s+/g," ");
+  if(!v) return "";
+  const hit = known.find(k => k.toLowerCase() === v.toLowerCase());
+  return hit || v;
+}
+
+/* ============================ state ============================ */
+const state = {
+  battles: [],
+  view: "standings",
+  warlord: null,
+  editing: null,
+  outcome: null,
+  filters: {player:"", faction:"", plan:""}
+};
+let DB = null;
+const LS_KEY = "realmgate-battle-roll-v1";
+const SEED_KEY = "realmgate-seeded-ids-v1";
+function seededIds(){
+  try{ return JSON.parse(localStorage.getItem(SEED_KEY) || "[]"); }catch(e){ return []; }
+}
+function rememberSeeded(ids){
+  try{ localStorage.setItem(SEED_KEY, JSON.stringify(ids)); }catch(e){}
+}
+
+function normalise(raw, id){
+  const b = raw || {};
+  return {
+    id: id || b.id || uid(),
+    date: b.date || today(),
+    points: +b.points || 2000,
+    plan: b.plan || "",
+    season: b.season === "2026-27" || b.season === "2025-26" ? b.season : "",
+    aName: b.aName || "", aFaction: b.aFaction || "", aVP: b.aVP == null ? null : +b.aVP,
+    bName: b.bName || "", bFaction: b.bFaction || "", bVP: b.bVP == null ? null : +b.bVP,
+    result: b.result === "a" || b.result === "b" || b.result === "draw" ? b.result : "draw",
+    deploy: b.deploy === "a" || b.deploy === "b" ? b.deploy : "",
+    first: b.first === "a" || b.first === "b" ? b.first : "",
+    createdAt: b.createdAt || 0
+  };
+}
+function sortBattles(list){
+  return list.slice().sort((x,y) =>
+    (y.date > x.date ? 1 : y.date < x.date ? -1 : 0) || (y.createdAt - x.createdAt));
+}
+
+/* ============================ storage ============================ */
+function readLocal(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? JSON.parse(raw).map(b => normalise(b)) : [];
+  }catch(e){ return []; }
+}
+function writeLocal(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(state.battles)); }catch(e){}
+}
+
+let noticeText = "";
+function notice(text){
+  noticeText = text || "";
+  paintNotice();
+}
+function paintNotice(){
+  const n = $("#notice");
+  const live = seededIds().filter(id => state.battles.some(b => b.id === id));
+  const parts = [];
+  if(noticeText) parts.push('<span>' + esc(noticeText) + '</span>');
+  if(live.length) parts.push('<span>Example battles are on the roll.</span>' +
+    '<button type="button" class="btn btn-ghost btn-sm" data-act="unseed">Remove the ' +
+    live.length + ' example records</button>');
+  n.innerHTML = parts.join('<span style="color:var(--fg-faint)">·</span>');
+  n.classList.toggle("on", parts.length > 0);
+}
+
+async function initStore(){
+  state.battles = sortBattles(readLocal());
+  renderAll();
+  let db = null;
+  try{
+    if(window.claude && typeof window.claude.use === "function"){
+      db = await window.claude.use("db");
+    }
+  }catch(e){ db = null; }
+
+  if(!db){
+    notice("Shared storage is not reachable in this view — records are being kept in this browser only.");
+    return;
+  }
+  DB = db;
+  const local = state.battles.slice();
+  db.collection("battles").limit(1000).onSnapshot(snap => {
+    state.battles = sortBattles(snap.docs.map(d => normalise(d.data(), d.id)));
+    notice("");
+    renderAll();
+  }, err => {
+    DB = null;
+    notice(err && err.code === "revoked"
+      ? "The shared roll is no longer available in this view — falling back to this browser."
+      : "Could not reach the shared roll — falling back to this browser.");
+    state.battles = sortBattles(local);
+    renderAll();
+  });
+}
+
+async function saveBattle(b){
+  if(DB){
+    try{
+      const { id, ...body } = b;
+      await DB.doc("battles/" + id).set(body);
+      return true;
+    }catch(e){
+      return e && e.code === "quota_exceeded"
+        ? "The roll is full. Delete some old records before adding more."
+        : "Could not save to the shared roll. Try again in a moment.";
+    }
+  }
+  const i = state.battles.findIndex(x => x.id === b.id);
+  if(i >= 0) state.battles[i] = b; else state.battles.push(b);
+  state.battles = sortBattles(state.battles);
+  writeLocal(); renderAll();
+  return true;
+}
+async function deleteBattle(id){
+  if(DB){
+    try{ await DB.doc("battles/" + id).delete(); return true; }
+    catch(e){ return "Could not remove that record. Try again in a moment."; }
+  }
+  state.battles = state.battles.filter(x => x.id !== id);
+  writeLocal(); renderAll();
+  return true;
+}
+
+/* ============================ statistics ============================ */
+function blank(name){
+  return {name, games:0, w:0, l:0, d:0, vpFor:0, vpAgainst:0, vpGames:0,
+    seq:[], armies:new Map(), foes:new Map(), enemyArmies:new Map(), plans:new Map()};
+}
+function bucket(map, key){
+  if(!map.has(key)) map.set(key, {key, games:0, w:0, l:0, d:0, diff:0});
+  return map.get(key);
+}
+function outcomeFor(b, side){
+  return b.result === "draw" ? "d" : b.result === side ? "w" : "l";
+}
+
+function analyse(battles){
+  const players = new Map();
+  const chrono = battles.slice().sort((x,y) =>
+    (x.date > y.date ? 1 : x.date < y.date ? -1 : 0) || (x.createdAt - y.createdAt));
+
+  chrono.forEach(b => {
+    [["a","b"],["b","a"]].forEach(([me, them]) => {
+      const name = b[me+"Name"];
+      if(!name) return;
+      if(!players.has(name)) players.set(name, blank(name));
+      const p = players.get(name);
+      const r = outcomeFor(b, me);
+      const myVP = b[me+"VP"], theirVP = b[them+"VP"];
+      const diff = (myVP != null && theirVP != null) ? myVP - theirVP : 0;
+
+      p.games++; p[r]++;
+      p.seq.push({r, battle:b, side:me, diff});
+      if(myVP != null && theirVP != null){
+        p.vpFor += myVP; p.vpAgainst += theirVP; p.vpGames++;
+      }
+      const army = b[me+"Faction"] || "Unrecorded";
+      const ab = bucket(p.armies, army); ab.games++; ab[r]++; ab.diff += diff;
+      const fb = bucket(p.foes, b[them+"Name"] || "Unknown"); fb.games++; fb[r]++; fb.diff += diff;
+      const eb = bucket(p.enemyArmies, b[them+"Faction"] || "Unrecorded"); eb.games++; eb[r]++; eb.diff += diff;
+      const pb = bucket(p.plans, b.plan || "Unrecorded"); pb.games++; pb[r]++; pb.diff += diff;
+    });
+  });
+
+  players.forEach(p => {
+    p.rate = pct(p.w + p.d*0.5, p.games);
+    p.winRate = pct(p.w, p.games);
+    p.diff = p.vpFor - p.vpAgainst;
+    p.avgFor = p.vpGames ? p.vpFor / p.vpGames : 0;
+    p.avgAgainst = p.vpGames ? p.vpAgainst / p.vpGames : 0;
+    p.form = p.seq.slice(-5).map(s => s.r);
+    let n = 0, kind = null;
+    for(let i = p.seq.length - 1; i >= 0; i--){
+      if(kind === null) kind = p.seq[i].r;
+      if(p.seq[i].r !== kind) break;
+      n++;
+    }
+    p.streak = n ? {kind, n} : null;
+    p.topArmy = [...p.armies.values()].sort((x,y) => y.games - x.games)[0] || null;
+  });
+  return players;
+}
+
+function rankOrder(players){
+  return [...players.values()].sort((x,y) => {
+    const rx = x.games >= 3 ? 0 : 1, ry = y.games >= 3 ? 0 : 1;
+    return rx - ry || y.winRate - x.winRate || y.games - x.games ||
+           y.diff - x.diff || x.name.localeCompare(y.name);
+  });
+}
+
+/* ============================ render fragments ============================ */
+function armyChip(faction){
+  const f = faction || "Unrecorded";
+  return '<span class="army ga-' + ga(faction) + '"><span class="pip"></span>' +
+         '<span class="name">' + esc(f) + '</span></span>';
+}
+function wl(o){
+  return '<span class="wl"><span class="w">' + o.w + '</span><span class="sep">–</span>' +
+         '<span class="d">' + o.d + '</span><span class="sep">–</span>' +
+         '<span class="l">' + o.l + '</span></span>';
+}
+function rateCell(w, games){
+  const v = pct(w, games);
+  return '<div class="rate"><span class="val">' + (games ? v.toFixed(1) + "%" : "—") +
+         '</span><span class="meter"><i style="width:' + v + '%"></i></span></div>';
+}
+function formDots(form){
+  if(!form.length) return '<span style="color:var(--fg-faint)">—</span>';
+  return '<span class="form-dots">' + form.map(r =>
+    '<span class="dot ' + r + '" title="' + (r === "w" ? "Won" : r === "l" ? "Lost" : "Drew") + '">' +
+    r.toUpperCase() + '</span>').join("") + '</span>';
+}
+function streakCell(s){
+  if(!s) return '<span style="color:var(--fg-faint)">—</span>';
+  return '<span class="streak ' + s.kind + '">' + s.kind.toUpperCase() + s.n + '</span>';
+}
+
+function battleCard(b){
+  const aWon = b.result === "a", bWon = b.result === "b", draw = b.result === "draw";
+  const showVP = b.aVP != null && b.bVP != null;
+  const side = (k, won) =>
+    '<div class="side ' + k + ' ga-' + ga(b[k+"Faction"]) + (won ? " won" : "") + '">' +
+      (won ? '<div class="laurel">Victor</div>' : "") +
+      '<button type="button" class="who" data-warlord="' + esc(b[k+"Name"]) + '">' + esc(b[k+"Name"] || "—") + '</button>' +
+      armyChip(b[k+"Faction"]) +
+    '</div>';
+  const scoreInner = showVP
+    ? '<b class="' + (bWon ? "dim" : "") + '">' + b.aVP + '</b><span class="dash">–</span>' +
+      '<b class="' + (aWon ? "dim" : "") + '">' + b.bVP + '</b>'
+    : '<b class="dim" style="font-size:13px">' + (draw ? "DRAW" : "NO VP") + '</b>';
+  const bits = [];
+  bits.push('<span class="meta-date">' + fmtDate(b.date) + '</span>');
+  if(b.plan) bits.push('<span><span class="k">Battleplan</span> ' + esc(b.plan) + '</span>');
+  bits.push('<span><span class="k">Points</span> ' + b.points.toLocaleString() + '</span>');
+  if(b.deploy) bits.push('<span><span class="k">Territory</span> ' + esc(b[b.deploy+"Name"]) + '</span>');
+  if(b.first) bits.push('<span><span class="k">First turn</span> ' + esc(b[b.first+"Name"]) + '</span>');
+  if(draw) bits.push('<span><span class="k">Result</span> Draw</span>');
+  return '<article class="battle">' +
+    '<div class="battle-main">' + side("a", aWon) +
+      '<div class="score">' + scoreInner + '</div>' + side("b", bWon) + '</div>' +
+    '<div class="battle-foot">' + bits.join("") +
+      '<span class="grow"><button type="button" class="btn btn-ghost btn-sm" data-edit="' + b.id + '">Edit</button></span>' +
+    '</div></article>';
+}
+
+/* ============================ views ============================ */
+function renderStandings(players){
+  const wrap = $("#standings-wrap");
+  const rows = rankOrder(players);
+  wrap.classList.toggle("panel", rows.length > 0);
+  if(!rows.length){ wrap.innerHTML = emptyState(); $("#standings-span").textContent = ""; return; }
+  let ranked = 0;
+  const body = rows.map(p => {
+    const isRanked = p.games >= 3;
+    if(isRanked) ranked++;
+    const rank = isRanked ? ranked : "–";
+    return '<tr class="clickable" data-warlord="' + esc(p.name) + '">' +
+      '<td class="rank' + (isRanked && ranked <= 3 ? " top" : "") + '">' + rank + '</td>' +
+      '<td><span class="warlord">' + esc(p.name) + '</span>' +
+        (isRanked ? "" : '<span class="provisional">Provisional</span>') + '</td>' +
+      '<td>' + (p.topArmy ? armyChip(p.topArmy.key) : "—") + '</td>' +
+      '<td class="c num">' + p.games + '</td>' +
+      '<td class="c">' + wl(p) + '</td>' +
+      '<td class="r">' + rateCell(p.w, p.games) + '</td>' +
+      '<td class="r num">' + (p.vpGames ? round1(p.avgFor) : "—") + '</td>' +
+      '<td class="r num">' + (p.vpGames ? round1(p.avgAgainst) : "—") + '</td>' +
+      '<td class="r num diff ' + (p.diff > 0 ? "pos" : p.diff < 0 ? "neg" : "") + '">' +
+        (p.vpGames ? signed(p.diff) : "—") + '</td>' +
+      '<td class="c">' + streakCell(p.streak) + '</td>' +
+      '<td>' + formDots(p.form) + '</td>' +
+    '</tr>';
+  }).join("");
+
+  wrap.innerHTML =
+    '<table><thead><tr>' +
+      '<th>#</th><th>Warlord</th><th>Most-fielded army</th><th class="c">Btl</th>' +
+      '<th class="c">W–D–L</th><th class="r">Win rate</th><th class="r">VP for</th>' +
+      '<th class="r">VP vs</th><th class="r">Diff</th><th class="c">Streak</th><th>Form</th>' +
+    '</tr></thead><tbody>' + body + '</tbody></table>';
+
+  const dates = state.battles.map(b => b.date).filter(Boolean).sort();
+  $("#standings-span").textContent = dates.length
+    ? fmtDate(dates[0]) + " — " + fmtDate(dates[dates.length-1]) : "";
+}
+
+function emptyState(){
+  return '<div class="empty">' +
+    '<h3>The roll stands empty</h3>' +
+    '<p>Nothing has been fought yet. Enter your first engagement and the standings, ' +
+    'records and matchups build themselves from there.</p>' +
+    '<div class="acts">' +
+      '<button type="button" class="btn btn-primary" data-act="muster">Log a battle</button>' +
+      '<button type="button" class="btn" data-act="sample">Fill with example battles</button>' +
+    '</div></div>';
+}
+
+function renderBattles(){
+  const wrap = $("#battles-wrap");
+  const f = state.filters;
+  const list = state.battles.filter(b =>
+    (!f.player || b.aName === f.player || b.bName === f.player) &&
+    (!f.faction || b.aFaction === f.faction || b.bFaction === f.faction) &&
+    (!f.plan || b.plan === f.plan));
+
+  if(!state.battles.length){ wrap.innerHTML = emptyState(); return; }
+  if(!list.length){
+    wrap.innerHTML = '<div class="empty"><h3>No matching battles</h3>' +
+      '<p>Nothing on the roll fits those filters.</p>' +
+      '<div class="acts"><button type="button" class="btn" data-act="clear-filters">Reset filters</button></div></div>';
+    return;
+  }
+  wrap.innerHTML = '<div class="battle-list">' + list.map(battleCard).join("") + '</div>';
+}
+
+function miniTable(title, hint, headLabel, rows, opts){
+  opts = opts || {};
+  if(!rows.length) return "";
+  const body = rows.map(r =>
+    '<tr' + (opts.click ? ' class="clickable" data-warlord="' + esc(r.key) + '"' : "") + '>' +
+      '<td>' + (opts.army ? armyChip(r.key) : '<span style="font-weight:500">' + esc(r.key) + '</span>') + '</td>' +
+      '<td class="c num">' + r.games + '</td>' +
+      '<td class="c">' + wl(r) + '</td>' +
+      '<td class="r">' + rateCell(r.w, r.games) + '</td>' +
+      '<td class="r num diff ' + (r.diff > 0 ? "pos" : r.diff < 0 ? "neg" : "") + '">' + signed(r.diff) + '</td>' +
+    '</tr>').join("");
+  return '<div class="subsec"><h3>' + title + '</h3><div class="hint">' + hint + '</div>' +
+    '<div class="scroll-x"><table><thead><tr><th>' + headLabel + '</th><th class="c">Btl</th>' +
+    '<th class="c">W–D–L</th><th class="r">Win rate</th><th class="r">VP diff</th>' +
+    '</tr></thead><tbody>' + body + '</tbody></table></div></div>';
+}
+
+function renderWarlords(players){
+  const picker = $("#warlord-picker");
+  const wrap = $("#warlord-wrap");
+  const names = rankOrder(players).map(p => p.name);
+
+  if(!names.length){
+    picker.innerHTML = "";
+    wrap.innerHTML = emptyState();
+    return;
+  }
+  if(!state.warlord || !players.has(state.warlord)) state.warlord = names[0];
+  picker.innerHTML = names.map(n =>
+    '<button type="button" class="pick" data-pick="' + esc(n) + '" aria-pressed="' +
+    (n === state.warlord) + '">' + esc(n) + '</button>').join("");
+
+  const p = players.get(state.warlord);
+  const byGames = m => [...m.values()].sort((x,y) => y.games - x.games || y.w - x.w);
+  const recent = state.battles.filter(b => b.aName === p.name || b.bName === p.name).slice(0,6);
+
+  wrap.innerHTML = '<div class="panel">' +
+    '<div class="hero"><div>' +
+      '<div class="eyebrow">Warlord</div>' +
+      '<h2>' + esc(p.name) + '</h2>' +
+      '<div class="record">' + p.w + ' won &nbsp;·&nbsp; ' + p.d + ' drawn &nbsp;·&nbsp; ' + p.l +
+        ' lost' + (p.streak ? ' &nbsp;·&nbsp; on a ' + p.streak.n + '-battle ' +
+        (p.streak.kind === "w" ? "winning" : p.streak.kind === "l" ? "losing" : "drawing") + ' run' : "") +
+      '</div></div>' +
+      '<div class="bigrate"><div class="eyebrow">Win rate</div>' +
+        '<div class="v">' + fmtPct(p.w, p.games) + '</div>' +
+        '<div style="margin-top:8px">' + formDots(p.form) + '</div></div>' +
+    '</div>' +
+    '<div class="tiles">' +
+      tile("Battles fought", p.games) +
+      tile("Avg VP scored", p.vpGames ? round1(p.avgFor) : "—") +
+      tile("Avg VP conceded", p.vpGames ? round1(p.avgAgainst) : "—") +
+      tile("Avg margin", p.vpGames ? signed(p.diff / p.vpGames) : "—") +
+      tile("Armies fielded", p.armies.size) +
+      tile("Opponents faced", p.foes.size) +
+    '</div>' +
+    miniTable("Head to head", "This warlord's record against every opponent on the roll. Select a row to open theirs.",
+      "Opponent", byGames(p.foes), {click:true}) +
+    miniTable("Armies fielded", "How each of this warlord's own armies has performed.",
+      "Army", byGames(p.armies), {army:true}) +
+    miniTable("Against enemy armies", "Which factions this warlord handles well, and which give trouble.",
+      "Enemy army", byGames(p.enemyArmies), {army:true}) +
+    miniTable("By battleplan", "Performance across the scenarios played.",
+      "Battleplan", byGames(p.plans), {}) +
+    '<div class="subsec"><h3>Recent battles</h3>' +
+      '<div class="hint">The last ' + recent.length + ' engagements fought.</div>' +
+      '<div class="battle-list">' + recent.map(battleCard).join("") + '</div></div>' +
+  '</div>';
+}
+function tile(label, value){
+  return '<div class="tile"><div class="eyebrow">' + label + '</div>' +
+    '<span class="v">' + value + '</span></div>';
+}
+
+/* ============================ render orchestration ============================ */
+function renderAll(){
+  const players = analyse(state.battles);
+  const names = [...players.keys()].sort((a,b) => a.localeCompare(b));
+  const factions = [...new Set(state.battles.flatMap(b => [b.aFaction, b.bFaction]).filter(Boolean))].sort();
+  const plans = [...new Set(state.battles.map(b => b.plan).filter(Boolean))].sort();
+
+  $("#ga-count").textContent = state.battles.length
+    ? state.battles.length + (state.battles.length === 1 ? " battle" : " battles") + " · " +
+      names.length + (names.length === 1 ? " warlord" : " warlords")
+    : "";
+
+  $("#warlords").innerHTML = names.map(n => '<option value="' + esc(n) + '"></option>').join("");
+  $("#factions").innerHTML = Object.keys(FACTIONS).concat(
+    factions.filter(f => !FACTIONS[f])).sort()
+    .map(f => '<option value="' + esc(f) + '"></option>').join("");
+
+  syncSelect($("#f-player"), names, state.filters.player, "All warlords");
+  syncSelect($("#f-faction"), factions, state.filters.faction, "All armies");
+  syncSelect($("#f-plan"), plans, state.filters.plan, "All battleplans");
+
+  renderStandings(players);
+  renderBattles();
+  renderWarlords(players);
+  paintNotice();
+}
+function syncSelect(sel, values, current, allLabel){
+  sel.innerHTML = '<option value="">' + allLabel + '</option>' +
+    values.map(v => '<option value="' + esc(v) + '">' + esc(v) + '</option>').join("");
+  sel.value = values.includes(current) ? current : "";
+  state.filters[sel.id.slice(2)] = sel.value;
+}
+function setView(v){
+  state.view = v;
+  document.querySelectorAll(".tab").forEach(t =>
+    t.setAttribute("aria-selected", String(t.dataset.view === v)));
+  document.querySelectorAll(".view").forEach(s =>
+    s.classList.toggle("active", s.id === "view-" + v));
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+function openWarlord(name){
+  state.warlord = name;
+  setView("warlords");
+  renderAll();
+}
+
+/* ============================ muster sheet ============================ */
+const M = {
+  date:$("#m-date"), points:$("#m-points"), season:$("#m-season"), plan:$("#m-plan"),
+  aName:$("#m-a-name"), aFaction:$("#m-a-faction"), aVP:$("#m-a-vp"),
+  bName:$("#m-b-name"), bFaction:$("#m-b-faction"), bVP:$("#m-b-vp"),
+  deploy:$("#m-deploy"), first:$("#m-first"), err:$("#m-err")
+};
+
+/* Rebuild the Battleplan options for a season. `keep` preserves a stored plan
+   name that doesn't belong to any known season (legacy records). */
+function refreshPlanOptions(season, keep){
+  const opts = SEASON_PLANS[season] || [];
+  const rows = opts.map(p => '<option value="' + esc(p) + '">' + esc(p) + '</option>');
+  if(keep && !opts.includes(keep)) rows.push('<option value="' + esc(keep) + '">' + esc(keep) + '</option>');
+  M.plan.innerHTML = '<option value="">' +
+    (season ? "Choose a battleplan" : "Choose a season first") + '</option>' + rows.join("");
+  M.plan.value = keep || "";
+}
+
+function setOutcome(r){
+  state.outcome = r;
+  document.querySelectorAll("#m-outcome button").forEach(btn =>
+    btn.setAttribute("aria-pressed", String(btn.dataset.r === r)));
+}
+function outcomeFromVP(){
+  const a = M.aVP.value === "" ? null : +M.aVP.value;
+  const b = M.bVP.value === "" ? null : +M.bVP.value;
+  if(a == null || b == null) return;
+  setOutcome(a > b ? "a" : b > a ? "b" : "draw");
+}
+function refreshSideLabels(){
+  const a = M.aName.value.trim() || "Side one";
+  const b = M.bName.value.trim() || "Side two";
+  const btns = document.querySelectorAll("#m-outcome button");
+  btns[0].textContent = a + " wins";
+  btns[2].textContent = b + " wins";
+  [M.deploy, M.first].forEach(sel => {
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">Not recorded</option>' +
+      '<option value="a">' + esc(a) + '</option><option value="b">' + esc(b) + '</option>';
+    sel.value = keep;
+  });
+  $("#c-a").className = "combatant ga-" + ga(canon(M.aFaction.value, Object.keys(FACTIONS)));
+  $("#c-b").className = "combatant ga-" + ga(canon(M.bFaction.value, Object.keys(FACTIONS)));
+}
+
+function openMuster(battle){
+  state.editing = battle ? battle.id : null;
+  const b = battle || normalise({date:today()});
+  M.date.value = b.date; M.points.value = String(b.points);
+  const initSeason = (b.season === "2026-27" || b.season === "2025-26") ? b.season : seasonForPlan(b.plan);
+  M.season.value = initSeason;
+  refreshPlanOptions(initSeason, b.plan);
+  M.aName.value = b.aName; M.aFaction.value = b.aFaction; M.aVP.value = b.aVP == null ? "" : b.aVP;
+  M.bName.value = b.bName; M.bFaction.value = b.bFaction; M.bVP.value = b.bVP == null ? "" : b.bVP;
+  M.err.textContent = "";
+  setOutcome(battle ? b.result : null);
+  refreshSideLabels();
+  M.deploy.value = b.deploy; M.first.value = b.first;
+  $("#sheet-title").textContent = battle ? "Amend the record" : "Log a battle";
+  $("#m-save").textContent = battle ? "Save changes" : "Enter into the roll";
+  $("#m-delete").hidden = !battle;
+  $("#overlay").hidden = false;
+  document.body.style.overflow = "hidden";
+  setTimeout(() => (battle ? M.season : M.aName).focus(), 30);
+}
+function closeMuster(){
+  $("#overlay").hidden = true;
+  document.body.style.overflow = "";
+  state.editing = null;
+}
+
+M.season.addEventListener("change", () => refreshPlanOptions(M.season.value, ""));
+
+$("#muster").addEventListener("submit", async e => {
+  e.preventDefault();
+  const knownNames = [...analyse(state.battles).keys()];
+  const knownFactions = Object.keys(FACTIONS);
+  const aName = canon(titleCase(M.aName.value), knownNames);
+  const bName = canon(titleCase(M.bName.value), knownNames);
+
+  if(!aName || !bName) return void (M.err.textContent = "Both warlords need a name.");
+  if(aName.toLowerCase() === bName.toLowerCase())
+    return void (M.err.textContent = "A warlord cannot fight themselves — use two different names.");
+  if(!state.outcome)
+    return void (M.err.textContent = "Choose an outcome, or enter victory points for both sides.");
+
+  const battle = normalise({
+    id: state.editing || uid(),
+    date: M.date.value || today(),
+    points: +M.points.value,
+    season: M.season.value,
+    plan: M.plan.value,
+    aName, aFaction: canon(M.aFaction.value, knownFactions),
+    aVP: M.aVP.value === "" ? null : +M.aVP.value,
+    bName, bFaction: canon(M.bFaction.value, knownFactions),
+    bVP: M.bVP.value === "" ? null : +M.bVP.value,
+    result: state.outcome,
+    deploy: M.deploy.value, first: M.first.value,
+    createdAt: state.editing
+      ? (state.battles.find(x => x.id === state.editing) || {}).createdAt || Date.now()
+      : Date.now()
+  }, state.editing || undefined);
+
+  const save = $("#m-save");
+  save.disabled = true; M.err.textContent = "";
+  const res = await saveBattle(battle);
+  save.disabled = false;
+  if(res !== true) return void (M.err.textContent = res);
+  closeMuster();
+});
+
+$("#m-delete").addEventListener("click", async () => {
+  if(!state.editing) return;
+  const res = await deleteBattle(state.editing);
+  if(res !== true) return void (M.err.textContent = res);
+  closeMuster();
+});
+
+document.querySelectorAll("#m-outcome button").forEach(btn =>
+  btn.addEventListener("click", () => setOutcome(btn.dataset.r)));
+[M.aVP, M.bVP].forEach(el => el.addEventListener("input", outcomeFromVP));
+[M.aName, M.bName, M.aFaction, M.bFaction].forEach(el =>
+  el.addEventListener("input", refreshSideLabels));
+
+/* ============================ events ============================ */
+$("#open-muster").addEventListener("click", () => openMuster(null));
+$("#close-muster").addEventListener("click", closeMuster);
+$("#overlay").addEventListener("mousedown", e => { if(e.target.id === "overlay") closeMuster(); });
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape" && !$("#overlay").hidden) closeMuster();
+});
+document.querySelectorAll(".tab").forEach(t =>
+  t.addEventListener("click", () => setView(t.dataset.view)));
+
+["f-player","f-faction","f-plan"].forEach(id => {
+  $("#" + id).addEventListener("change", e => {
+    state.filters[id.slice(2)] = e.target.value;
+    renderBattles();
+  });
+});
+$("#f-clear").addEventListener("click", () => {
+  state.filters = {player:"", faction:"", plan:""};
+  ["f-player","f-faction","f-plan"].forEach(id => ($("#" + id).value = ""));
+  renderBattles();
+});
+
+document.addEventListener("click", e => {
+  const pick = e.target.closest("[data-pick]");
+  if(pick){ state.warlord = pick.dataset.pick; renderAll(); return; }
+
+  const edit = e.target.closest("[data-edit]");
+  if(edit){
+    const b = state.battles.find(x => x.id === edit.dataset.edit);
+    if(b) openMuster(b);
+    return;
+  }
+  const who = e.target.closest("[data-warlord]");
+  if(who && !$("#overlay").contains(who)){ openWarlord(who.dataset.warlord); return; }
+
+  const act = e.target.closest("[data-act]");
+  if(!act) return;
+  if(act.dataset.act === "muster") openMuster(null);
+  if(act.dataset.act === "clear-filters") $("#f-clear").click();
+  if(act.dataset.act === "sample") seedExamples();
+  if(act.dataset.act === "unseed") removeExamples();
+});
+
+/* ============================ example data ============================ */
+async function seedExamples(){
+  const rows = [
+    ["2026-06-14","Focal Points","Ravik","Stormcast Eternals",21,"Terrik","Skaven",18,"a","b","a"],
+    ["2026-06-14","Border War","Nadia","Soulblight Gravelords",17,"Osgood","Gloomspite Gitz",22,"b","a","b"],
+    ["2026-06-28","Starstrike","Terrik","Skaven",25,"Nadia","Soulblight Gravelords",14,"a","a","a"],
+    ["2026-06-28","Focal Points","Osgood","Sons of Behemat",19,"Ravik","Stormcast Eternals",19,"draw","b","b"],
+    ["2026-07-12","Limited Resources","Ravik","Lumineth Realm-lords",23,"Nadia","Nighthaunt",16,"a","a","b"],
+    ["2026-07-12","Scorched Earth","Terrik","Blades of Khorne",12,"Osgood","Gloomspite Gitz",20,"b","b","a"],
+    ["2026-07-26","Close to the Chest","Nadia","Soulblight Gravelords",24,"Terrik","Skaven",15,"a","a","a"],
+    ["2026-07-26","Starstrike","Osgood","Gloomspite Gitz",18,"Ravik","Stormcast Eternals",26,"b","a","b"],
+    ["2026-08-09","Feral Foray","Ravik","Stormcast Eternals",20,"Terrik","Blades of Khorne",22,"b","b","b"],
+    ["2026-08-09","Focal Points","Nadia","Nighthaunt",21,"Osgood","Sons of Behemat",13,"a","a","a"],
+    ["2026-08-23","Border War","Terrik","Skaven",19,"Ravik","Lumineth Realm-lords",24,"b","a","a"],
+    ["2026-08-23","Only the Faithful","Osgood","Gloomspite Gitz",17,"Nadia","Soulblight Gravelords",17,"draw","b","b"]
+  ];
+  const btn = document.querySelector('[data-act="sample"]');
+  if(btn){ btn.disabled = true; btn.textContent = "Filling the roll…"; }
+  const ids = [];
+  for(let i = 0; i < rows.length; i++){
+    const r = rows[i];
+    const id = uid(); ids.push(id);
+    await saveBattle(normalise({
+      id, date:r[0], points:2000, plan:r[1],
+      aName:r[2], aFaction:r[3], aVP:r[4],
+      bName:r[5], bFaction:r[6], bVP:r[7],
+      result:r[8], deploy:r[9], first:r[10], createdAt: Date.now() + i
+    }));
+  }
+  rememberSeeded(ids);
+  paintNotice();
+}
+
+async function removeExamples(){
+  const btn = document.querySelector('[data-act="unseed"]');
+  if(btn){ btn.disabled = true; btn.textContent = "Removing…"; }
+  for(const id of seededIds()){
+    if(state.battles.some(b => b.id === id)) await deleteBattle(id);
+  }
+  rememberSeeded([]);
+  paintNotice();
+}
+
+/* ============================ boot ============================ */
+M.date.value = today();
+refreshPlanOptions("", "");
+refreshSideLabels();
+initStore();
+})();
+</script>
