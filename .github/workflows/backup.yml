@@ -1,0 +1,43 @@
+name: Back up the roll
+
+# Nothing reachable from the page can destroy a battle — an admin's delete only
+# stamps deleted_at. This is the backstop for everything else: a bad migration,
+# a mistaken SQL statement, or the project going away.
+
+on:
+  schedule:
+    - cron: "17 4 * * *"   # daily, 04:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Export battles as JSON
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SERVICE_ROLE_KEY:-}" ]; then
+            echo "::error::Set the SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY repository secrets."
+            exit 1
+          fi
+          # The service_role key bypasses row-level security, so retired
+          # records (deleted_at set) are captured too.
+          curl -fsS "${SUPABASE_URL}/rest/v1/battles?select=*" \
+            -H "apikey: ${SERVICE_ROLE_KEY}" \
+            -H "Authorization: Bearer ${SERVICE_ROLE_KEY}" \
+            -o battles.json
+          # Fail rather than archive an error body or an empty response.
+          jq -e 'type == "array"' battles.json > /dev/null
+          echo "Backed up $(jq 'length' battles.json) battles."
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: battles-${{ github.run_id }}
+          path: battles.json
+          retention-days: 90

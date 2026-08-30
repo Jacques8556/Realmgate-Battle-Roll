@@ -384,6 +384,7 @@ fieldset legend{padding:0; margin-bottom:11px}
       <button class="tab" role="tab" data-view="battles" aria-selected="false">Battles</button>
       <button class="tab" role="tab" data-view="warlords" aria-selected="false">Warlords</button>
     </nav>
+    <button class="btn btn-ghost btn-sm" id="admin-btn" hidden>Admin</button>
     <button class="btn btn-primary" id="open-muster">Log a battle</button>
   </div>
 </header>
@@ -567,6 +568,36 @@ fieldset legend{padding:0; margin-bottom:11px}
   </form>
 </div>
 
+<!-- ADMIN SIGN-IN -->
+<div class="overlay" id="auth-overlay" hidden>
+  <form class="sheet" id="auth-form" style="max-width:380px" autocomplete="on">
+    <div class="sheet-head">
+      <h2>Admin sign-in</h2>
+      <button type="button" class="btn btn-ghost btn-sm" id="auth-close" aria-label="Close">Close</button>
+    </div>
+    <div class="sheet-body">
+      <div class="grid">
+        <div class="field">
+          <label for="auth-email">Email</label>
+          <input type="email" id="auth-email" required autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="auth-pass">Password</label>
+          <input type="password" id="auth-pass" required autocomplete="current-password">
+        </div>
+      </div>
+      <div class="section-note" style="margin-top:11px">
+        Signing in is only needed to retire records from the roll. Logging and
+        amending battles needs no account.
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <span class="err" id="auth-err"></span>
+      <button type="submit" class="btn btn-primary" id="auth-save">Sign in</button>
+    </div>
+  </form>
+</div>
+
 <datalist id="factions"></datalist>
 <datalist id="warlords"></datalist>
 
@@ -637,6 +668,7 @@ const state = {
   warlord: null,
   editing: null,
   outcome: null,
+  isAdmin: false,
   filters: {player:"", faction:"", plan:""}
 };
 /* Supabase holds the shared roll. The publishable key is meant to ship in the
@@ -691,6 +723,15 @@ function rowToBattle(r){
     attacker:r.attacker, first:r.first_turn, createdAt:r.created_at
   }, r.id);
 }
+/* The columns a visitor is allowed to change on a battle that already exists.
+   This deliberately mirrors the column grants in supabase/schema.sql: id and
+   created_at are fixed once logged, and deleted_at is an admin's to set. Send
+   anything outside this set on an update and Postgres refuses the whole
+   statement, so amend and log are kept as separate calls below. */
+const EDITABLE = ["date","points","plan","season",
+  "a_name","a_faction","a_vp","a_list","b_name","b_faction","b_vp","b_list",
+  "result","concede_round","attacker","first_turn"];
+
 function battleToRow(b){
   return {
     id:b.id, date:b.date, points:b.points, plan:b.plan, season:b.season,
@@ -699,6 +740,11 @@ function battleToRow(b){
     result:b.result, concede_round:b.concedeRound,
     attacker:b.attacker, first_turn:b.first, created_at:b.createdAt
   };
+}
+function battleToAmendment(b){
+  const full = battleToRow(b), out = {};
+  for(const k of EDITABLE) out[k] = full[k];
+  return out;
 }
 
 function readLocal(){
@@ -711,6 +757,11 @@ function writeLocal(){
   try{ localStorage.setItem(LS_KEY, JSON.stringify(state.battles)); }catch(e){}
 }
 
+/* Example battles are a setup convenience. Once the roll is shared they would
+   just be litter a passer-by could scatter, so offer them only before the
+   shared roll is reachable, or to an admin. */
+function canSeed(){ return !DB || state.isAdmin; }
+
 let noticeText = "";
 function notice(text){
   noticeText = text || "";
@@ -721,7 +772,7 @@ function paintNotice(){
   const live = seededIds().filter(id => state.battles.some(b => b.id === id));
   const parts = [];
   if(noticeText) parts.push('<span>' + esc(noticeText) + '</span>');
-  if(live.length) parts.push('<span>Example battles are on the roll.</span>' +
+  if(live.length && canSeed()) parts.push('<span>Example battles are on the roll.</span>' +
     '<button type="button" class="btn btn-ghost btn-sm" data-act="unseed">Remove the ' +
     live.length + ' example records</button>');
   n.innerHTML = parts.join('<span style="color:var(--fg-faint)">·</span>');
@@ -734,7 +785,8 @@ function paintNotice(){
 async function pullBattles(){
   try{
     const { data, error } = await DB.from("battles")
-      .select("*").order("date", {ascending:false}).limit(1000);
+      .select("*").is("deleted_at", null)
+      .order("date", {ascending:false}).limit(1000);
     if(error) return false;
     state.battles = sortBattles((data || []).map(rowToBattle));
     renderAll();
@@ -751,6 +803,9 @@ async function initStore(){
     return;
   }
   DB = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  $("#admin-btn").hidden = false;
+  await refreshAdmin();
+  DB.auth.onAuthStateChange(() => { refreshAdmin().then(renderAll); });
 
   const local = state.battles.slice();
   if(!await pullBattles()){
@@ -772,11 +827,35 @@ async function initStore(){
   }catch(e){}
 }
 
-async function saveBattle(b){
+/* Whether the signed-in account is on the admins table. Anyone who is not is
+   treated as an ordinary visitor, which is also what happens when nobody is
+   signed in at all. */
+async function refreshAdmin(){
+  state.isAdmin = false;
+  try{
+    const { data:{ session } } = await DB.auth.getSession();
+    if(!session) return;
+    const { data } = await DB.from("admins")
+      .select("user_id").eq("user_id", session.user.id).maybeSingle();
+    state.isAdmin = !!data;
+  }catch(e){}
+}
+
+function writeRefused(error){
+  return error && (error.code === "42501" || error.code === "PGRST301" ||
+    /permission denied|row-level security/i.test(error.message || ""));
+}
+
+async function saveBattle(b, isNew){
   if(DB){
-    const { error } = await DB.from("battles").upsert(battleToRow(b));
-    if(error) return error.code === "42501" || error.code === "PGRST301"
-      ? "This roll does not accept new records from here."
+    /* Logging inserts the whole record; amending touches only the columns a
+       visitor is allowed to change. Sending the full row on an amend would be
+       refused for want of privilege on id and created_at. */
+    const { error } = isNew
+      ? await DB.from("battles").insert(battleToRow(b))
+      : await DB.from("battles").update(battleToAmendment(b)).eq("id", b.id);
+    if(error) return writeRefused(error)
+      ? "The roll would not accept that change."
       : "Could not save to the shared roll. Try again in a moment.";
     await pullBattles();
     return true;
@@ -787,10 +866,17 @@ async function saveBattle(b){
   writeLocal(); renderAll();
   return true;
 }
+
+/* Retiring a battle stamps deleted_at rather than removing the row, so a
+   record can always be brought back from the table. Only admins may do it. */
 async function deleteBattle(id){
   if(DB){
-    const { error } = await DB.from("battles").delete().eq("id", id);
-    if(error) return "Could not remove that record. Try again in a moment.";
+    if(!state.isAdmin) return "Only an admin can retire a record from the roll.";
+    const { error } = await DB.from("battles")
+      .update({deleted_at: new Date().toISOString()}).eq("id", id);
+    if(error) return writeRefused(error)
+      ? "Only an admin can retire a record from the roll."
+      : "Could not remove that record. Try again in a moment.";
     await pullBattles();
     return true;
   }
@@ -985,7 +1071,7 @@ function emptyState(){
     'records and matchups build themselves from there.</p>' +
     '<div class="acts">' +
       '<button type="button" class="btn btn-primary" data-act="muster">Log a battle</button>' +
-      '<button type="button" class="btn" data-act="sample">Fill with example battles</button>' +
+      (canSeed() ? '<button type="button" class="btn" data-act="sample">Fill with example battles</button>' : "") +
     '</div></div>';
 }
 
@@ -1102,6 +1188,7 @@ function renderAll(){
   syncSelect($("#f-faction"), factions, state.filters.faction, "All armies");
   syncSelect($("#f-plan"), plans, state.filters.plan, "All battleplans");
 
+  paintAdminBtn();
   renderStandings(players);
   renderBattles();
   renderWarlords(players);
@@ -1195,7 +1282,7 @@ function openMuster(battle){
   M.attacker.value = b.attacker; M.first.value = b.first;
   $("#sheet-title").textContent = battle ? "Amend the record" : "Log a battle";
   $("#m-save").textContent = battle ? "Save changes" : "Enter into the roll";
-  $("#m-delete").hidden = !battle;
+  $("#m-delete").hidden = !battle || (DB && !state.isAdmin);
   $("#overlay").hidden = false;
   document.body.style.overflow = "hidden";
   setTimeout(() => (battle ? M.season : M.aName).focus(), 30);
@@ -1243,7 +1330,7 @@ $("#muster").addEventListener("submit", async e => {
 
   const save = $("#m-save");
   save.disabled = true; M.err.textContent = "";
-  const res = await saveBattle(battle);
+  const res = await saveBattle(battle, !state.editing);
   save.disabled = false;
   if(res !== true) return void (M.err.textContent = res);
   closeMuster();
@@ -1262,12 +1349,59 @@ document.querySelectorAll("#m-outcome button").forEach(btn =>
 [M.aName, M.bName, M.aFaction, M.bFaction].forEach(el =>
   el.addEventListener("input", refreshSideLabels));
 
+/* ============================ admin sign-in ============================ */
+function paintAdminBtn(){
+  $("#admin-btn").textContent = state.isAdmin ? "Sign out" : "Admin";
+}
+function openAuth(){
+  $("#auth-err").textContent = "";
+  $("#auth-pass").value = "";
+  $("#auth-overlay").hidden = false;
+  document.body.style.overflow = "hidden";
+  setTimeout(() => $("#auth-email").focus(), 30);
+}
+function closeAuth(){
+  $("#auth-overlay").hidden = true;
+  document.body.style.overflow = "";
+}
+
+$("#admin-btn").addEventListener("click", async () => {
+  if(!state.isAdmin) return openAuth();
+  await DB.auth.signOut();
+  await refreshAdmin();
+  renderAll();
+});
+$("#auth-close").addEventListener("click", closeAuth);
+$("#auth-overlay").addEventListener("mousedown", e => {
+  if(e.target.id === "auth-overlay") closeAuth();
+});
+$("#auth-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const btn = $("#auth-save");
+  btn.disabled = true; $("#auth-err").textContent = "";
+  const { error } = await DB.auth.signInWithPassword({
+    email: $("#auth-email").value.trim(), password: $("#auth-pass").value
+  });
+  btn.disabled = false;
+  if(error) return void ($("#auth-err").textContent = "Those details were not accepted.");
+  await refreshAdmin();
+  if(!state.isAdmin){
+    $("#auth-err").textContent = "That account is signed in but is not an admin.";
+    renderAll();
+    return;
+  }
+  closeAuth();
+  renderAll();
+});
+
 /* ============================ events ============================ */
 $("#open-muster").addEventListener("click", () => openMuster(null));
 $("#close-muster").addEventListener("click", closeMuster);
 $("#overlay").addEventListener("mousedown", e => { if(e.target.id === "overlay") closeMuster(); });
 document.addEventListener("keydown", e => {
-  if(e.key === "Escape" && !$("#overlay").hidden) closeMuster();
+  if(e.key !== "Escape") return;
+  if(!$("#auth-overlay").hidden) return closeAuth();
+  if(!$("#overlay").hidden) closeMuster();
 });
 document.querySelectorAll(".tab").forEach(t =>
   t.addEventListener("click", () => setView(t.dataset.view)));
@@ -1343,7 +1477,7 @@ async function seedExamples(){
     }
     await pullBattles();
   }else{
-    for(const b of battles) await saveBattle(b);
+    for(const b of battles) await saveBattle(b, true);
   }
   rememberSeeded(ids);
   paintNotice();
