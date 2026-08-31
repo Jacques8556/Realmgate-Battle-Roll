@@ -10,7 +10,7 @@ as a static page from GitHub Pages, with the shared roll kept in Supabase.
 |---|---|---|---|---|
 | **anyone, no login** | yes | yes | yes | no |
 | **admin** (signed in) | yes | yes | yes | yes |
-| **automation** (service key) | yes | yes | yes | yes |
+| **automation** (secret key) | yes | yes | yes | yes |
 
 Retiring a battle is a soft delete: it stamps `deleted_at` and the page stops
 showing the record, but the row stays in the table. Nothing reachable from the
@@ -30,6 +30,11 @@ deletion wearing a different hat. The grants in `schema.sql` are what stop it.
 
 Supabase dashboard → **SQL Editor → New query**, paste
 [`supabase/schema.sql`](supabase/schema.sql), run it. Safe to re-run later.
+
+Let the file create the tables — don't build them by hand in the table editor.
+The page and the policies both depend on the exact column names and types, and
+a hand-made table will not match. If one already exists, the script stops with
+an explanation rather than half-applying itself.
 
 ### 2. Create your admin account
 
@@ -57,22 +62,28 @@ script. Both are meant to ship in the page.
 
 ### 4. Turn on Pages
 
-**Settings → Pages → Source: GitHub Actions.**
 [`.github/workflows/pages.yml`](.github/workflows/pages.yml) publishes the
 repository root on every push to `main`. There is no build step.
+
+The workflow asks GitHub to enable Pages itself. If it still fails with
+*Get Pages site failed*, set it manually: **Settings → Pages → Source: GitHub
+Actions**, then re-run the job.
 
 ### 5. Turn on backups
 
 Add two repository secrets under **Settings → Secrets and variables → Actions**:
 
 - `SUPABASE_URL` — the project URL
-- `SUPABASE_SERVICE_ROLE_KEY` — **Project Settings → API Keys → service_role**
+- `SUPABASE_SECRET_KEY` — **Project Settings → API Keys → Secret keys**, an
+  `sb_secret_…` value. (On projects still using the legacy keys, the
+  `service_role` JWT goes here instead.)
 
 [`.github/workflows/backup.yml`](.github/workflows/backup.yml) then exports the
 whole table nightly as a build artifact, retired records included.
 
-> The service_role key bypasses row-level security completely. It belongs in
-> GitHub Secrets and nowhere else — never in `index.html`, never committed.
+> The secret key bypasses row-level security completely — it is the one key
+> that can destroy the roll. It belongs in GitHub Secrets and nowhere else:
+> never in `index.html`, never committed, never in a browser.
 
 ## Automated data entry
 
@@ -96,8 +107,8 @@ curl -X POST "$SUPABASE_URL/rest/v1/battles" \
 `id` must be unique and is yours to choose; `created_at` is epoch milliseconds
 and only breaks ties between battles on the same date.
 
-**Retiring records or backfilling `created_at`** needs the service_role key, as
-in the backup workflow.
+**Retiring records or backfilling `created_at`** needs the secret key, as in
+the backup workflow.
 
 ## Working on it
 

@@ -19,18 +19,21 @@ jobs:
       - name: Export battles as JSON
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Project Settings → API Keys → Secret keys (an "sb_secret_…" value).
+          # On projects still using the legacy keys this is the service_role
+          # JWT instead; either works here.
+          SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: |
           set -euo pipefail
-          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SERVICE_ROLE_KEY:-}" ]; then
-            echo "::error::Set the SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY repository secrets."
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SECRET_KEY:-}" ]; then
+            echo "::error::Set the SUPABASE_URL and SUPABASE_SECRET_KEY repository secrets."
             exit 1
           fi
-          # The service_role key bypasses row-level security, so retired
-          # records (deleted_at set) are captured too.
+          # The secret key bypasses row-level security, so retired records
+          # (deleted_at set) are captured too.
           curl -fsS "${SUPABASE_URL}/rest/v1/battles?select=*" \
-            -H "apikey: ${SERVICE_ROLE_KEY}" \
-            -H "Authorization: Bearer ${SERVICE_ROLE_KEY}" \
+            -H "apikey: ${SECRET_KEY}" \
+            -H "Authorization: Bearer ${SECRET_KEY}" \
             -o battles.json
           # Fail rather than archive an error body or an empty response.
           jq -e 'type == "array"' battles.json > /dev/null
