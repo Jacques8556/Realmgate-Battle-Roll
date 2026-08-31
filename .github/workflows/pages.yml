@@ -27,7 +27,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # enablement turns Pages on for the repository if it is not already,
+      # rather than failing with "Get Pages site failed".
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       # The site is a single self-contained index.html at the repository root,
       # so the repository itself is the artifact — no build step.

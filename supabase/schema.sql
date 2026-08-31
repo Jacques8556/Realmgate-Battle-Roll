@@ -13,6 +13,39 @@
 -- real SQL statement run by you can remove it for good.
 
 -- ---------------------------------------------------------------------------
+-- Preflight
+-- ---------------------------------------------------------------------------
+-- `create table if not exists` below quietly does nothing if a battles table
+-- is already there, and everything after it then fails against the columns it
+-- expected to have made. Stop with something readable instead.
+do $$
+declare
+  wrong text;
+begin
+  if to_regclass('public.battles') is null then return; end if;
+
+  select string_agg(quote_ident(column_name), ', ' order by column_name)
+    into wrong
+    from information_schema.columns
+   where table_schema = 'public' and table_name = 'battles'
+     and column_name in ('aName','aFaction','aVP','aList',
+                         'bName','bFaction','bVP','bList',
+                         'concedeRound','createdAt','first');
+
+  if wrong is not null then
+    raise exception 'This battles table has camelCase columns (%), but the page and the rest of this file use snake_case.', wrong
+      using hint = 'If the table holds nothing you need, run:  drop table public.battles cascade;  then run this file again. Do not create the table by hand — this file is the definition.';
+  end if;
+
+  if not exists (select 1 from information_schema.columns
+                  where table_schema='public' and table_name='battles'
+                    and column_name='id' and data_type='text') then
+    raise exception 'The battles.id column must be text — the page generates its own short ids (e.g. "b1a2b3c4d"), which a uuid column rejects.'
+      using hint = 'If the table holds nothing you need, run:  drop table public.battles cascade;  then run this file again.';
+  end if;
+end $$;
+
+-- ---------------------------------------------------------------------------
 -- battles
 -- ---------------------------------------------------------------------------
 create table if not exists public.battles (
