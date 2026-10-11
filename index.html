@@ -74,13 +74,18 @@ button,input,select{font:inherit; color:inherit}
   color:var(--gold); font-weight:600;
 }
 nav.tabs{display:flex; gap:2px}
-.tab{
+.tab,.subtab{
   background:none; border:0; cursor:pointer; padding:8px 13px;
   font-size:12px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
   color:var(--fg-muted); border-bottom:2px solid transparent; margin-bottom:-1px;
 }
-.tab:hover{color:var(--fg)}
-.tab[aria-selected="true"]{color:var(--fg); border-bottom-color:var(--gold)}
+.tab:hover,.subtab:hover{color:var(--fg)}
+.tab[aria-selected="true"],.subtab[aria-selected="true"]{color:var(--fg); border-bottom-color:var(--gold)}
+.subtabs{display:flex; gap:2px; border-bottom:1px solid var(--line); margin-bottom:16px}
+.subtab .count{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:0;
+  color:var(--fg-faint); margin-left:6px;
+}
 
 .btn{
   cursor:pointer; border-radius:var(--radius); border:1px solid var(--line-strong);
@@ -361,6 +366,8 @@ fieldset legend{padding:0; margin-bottom:11px}
 }
 
 @media (max-width:720px){
+  nav.tabs{width:100%; overflow-x:auto; scrollbar-width:none}
+  .tab{flex:1; padding:8px 2px; margin-bottom:0; font-size:11.5px; letter-spacing:.04em}
   .battle-main{grid-template-columns:1fr}
   .side.a{text-align:left; align-items:flex-start; border-left:3px solid var(--ga,var(--una))}
   .side.a .army{flex-direction:row}
@@ -382,6 +389,7 @@ fieldset legend{padding:0; margin-bottom:11px}
     <nav class="tabs" role="tablist" aria-label="Ledger sections">
       <button class="tab" role="tab" data-view="standings" aria-selected="true">Standings</button>
       <button class="tab" role="tab" data-view="battles" aria-selected="false">Battles</button>
+      <button class="tab" role="tab" data-view="spearhead" aria-selected="false">Spearhead</button>
       <button class="tab" role="tab" data-view="warlords" aria-selected="false">Warlords</button>
     </nav>
     <button class="btn btn-ghost btn-sm" id="admin-btn" hidden>Admin</button>
@@ -397,7 +405,7 @@ fieldset legend{padding:0; margin-bottom:11px}
     <div class="section-head">
       <div>
         <h2>Standings</h2>
-        <div class="section-note">Ranked by win rate. Three battles fought before a warlord is ranked in earnest.</div>
+        <div class="section-note">Matched play, ranked by win rate. Three battles fought before a warlord is ranked in earnest.</div>
       </div>
       <div class="eyebrow" id="standings-span"></div>
     </div>
@@ -409,7 +417,7 @@ fieldset legend{padding:0; margin-bottom:11px}
     <div class="section-head">
       <div>
         <h2>Battle Log</h2>
-        <div class="section-note">Every engagement, most recent first.</div>
+        <div class="section-note">Every matched play engagement, most recent first.</div>
       </div>
     </div>
     <div class="filters">
@@ -421,12 +429,38 @@ fieldset legend{padding:0; margin-bottom:11px}
     <div id="battles-wrap"></div>
   </section>
 
+  <!-- SPEARHEAD -->
+  <section class="view" id="view-spearhead" role="tabpanel">
+    <div class="section-head">
+      <div>
+        <h2>Spearhead</h2>
+        <div class="section-note">Ranked on their own, by win rate. Spearhead results never count toward the matched play standings.</div>
+      </div>
+      <div class="eyebrow" id="sh-standings-span"></div>
+    </div>
+    <div class="panel scroll-x" id="sh-standings-wrap"></div>
+    <div id="sh-log" style="margin-top:34px">
+      <div class="section-head">
+        <div>
+          <h2>Spearhead Log</h2>
+          <div class="section-note">Every Spearhead engagement, most recent first.</div>
+        </div>
+      </div>
+      <div class="filters">
+        <select id="sf-player"><option value="">All warlords</option></select>
+        <select id="sf-faction"><option value="">All armies</option></select>
+        <button class="btn btn-sm btn-ghost" id="sf-clear">Reset filters</button>
+      </div>
+      <div id="sh-battles-wrap"></div>
+    </div>
+  </section>
+
   <!-- WARLORDS -->
   <section class="view" id="view-warlords" role="tabpanel">
     <div class="section-head">
       <div>
         <h2>Warlords</h2>
-        <div class="section-note">Choose a warlord for their full record, armies fielded, and head-to-head matchups.</div>
+        <div class="section-note">Choose a warlord for their full record, armies fielded, and head-to-head matchups. Matched play and Spearhead are kept apart.</div>
       </div>
     </div>
     <div class="picker" id="warlord-picker"></div>
@@ -452,14 +486,17 @@ fieldset legend{padding:0; margin-bottom:11px}
           <div class="field">
             <label for="m-points">Points level</label>
             <select id="m-points">
-              <option value="1000">1,000</option>
-              <option value="1500">1,500</option>
-              <option value="2000" selected>2,000</option>
-              <option value="2500">2,500</option>
-              <option value="3000">3,000</option>
+              <optgroup label="Matched play">
+                <option value="1000">1,000</option>
+                <option value="1500">1,500</option>
+                <option value="2000" selected>2,000</option>
+                <option value="2500">2,500</option>
+                <option value="3000">3,000</option>
+              </optgroup>
+              <option value="spearhead">Spearhead</option>
             </select>
           </div>
-          <div class="field">
+          <div class="field matched-only">
             <label for="m-season">GHB season</label>
             <select id="m-season">
               <option value="">—</option>
@@ -468,12 +505,13 @@ fieldset legend{padding:0; margin-bottom:11px}
             </select>
           </div>
         </div>
-        <div class="field" style="margin-top:13px">
+        <div class="field matched-only" style="margin-top:13px">
           <label for="m-plan">Battleplan</label>
           <select id="m-plan">
             <option value="">Choose a season first</option>
           </select>
         </div>
+        <div class="section-note" id="m-spearhead-note" style="margin-top:7px" hidden>Spearhead armies are fixed, so a Spearhead battle skips the season, battleplan and army lists. Its results are ranked apart from matched play.</div>
       </fieldset>
 
       <fieldset>
@@ -494,7 +532,7 @@ fieldset legend{padding:0; margin-bottom:11px}
                 <label for="m-a-vp">Victory points</label>
                 <input type="number" id="m-a-vp" min="0" max="99" placeholder="0">
               </div>
-              <div class="field">
+              <div class="field matched-only">
                 <label for="m-a-list">Army list (optional)</label>
                 <textarea id="m-a-list" rows="3" placeholder="Paste an exported list…"></textarea>
               </div>
@@ -515,7 +553,7 @@ fieldset legend{padding:0; margin-bottom:11px}
                 <label for="m-b-vp">Victory points</label>
                 <input type="number" id="m-b-vp" min="0" max="99" placeholder="0">
               </div>
-              <div class="field">
+              <div class="field matched-only">
                 <label for="m-b-list">Army list (optional)</label>
                 <textarea id="m-b-list" rows="3" placeholder="Paste an exported list…"></textarea>
               </div>
@@ -666,10 +704,14 @@ const state = {
   battles: [],
   view: "standings",
   warlord: null,
+  warlordFormat: "matched",
   editing: null,
   outcome: null,
   isAdmin: false,
-  filters: {player:"", faction:"", plan:""}
+  filters: {
+    matched: {player:"", faction:"", plan:""},
+    spearhead: {player:"", faction:""}
+  }
 };
 /* Supabase holds the shared roll. The publishable key is meant to ship in the
    page — what a visitor may actually do is decided by the row-level security
@@ -686,18 +728,22 @@ function rememberSeeded(ids){
   try{ localStorage.setItem(SEED_KEY, JSON.stringify(ids)); }catch(e){}
 }
 
+/* Spearhead is its own format: fixed armies, no points level, no GHB season or
+   battleplan. It is ranked apart from matched play and never shares its stats. */
 function normalise(raw, id){
   const b = raw || {};
+  const spearhead = b.format === "spearhead";
   return {
     id: id || b.id || uid(),
     date: b.date || today(),
-    points: +b.points || 2000,
-    plan: b.plan || "",
-    season: b.season === "2026-27" || b.season === "2025-26" ? b.season : "",
+    format: spearhead ? "spearhead" : "matched",
+    points: spearhead ? null : +b.points || 2000,
+    plan: spearhead ? "" : b.plan || "",
+    season: !spearhead && (b.season === "2026-27" || b.season === "2025-26") ? b.season : "",
     aName: b.aName || "", aFaction: b.aFaction || "", aVP: b.aVP == null ? null : +b.aVP,
-    aList: b.aList || "",
+    aList: spearhead ? "" : b.aList || "",
     bName: b.bName || "", bFaction: b.bFaction || "", bVP: b.bVP == null ? null : +b.bVP,
-    bList: b.bList || "",
+    bList: spearhead ? "" : b.bList || "",
     result: b.result === "a" || b.result === "b" || b.result === "draw" ? b.result : "draw",
     concedeRound: [1,2,3,4,5].includes(+b.concedeRound) ? +b.concedeRound : null,
     attacker: b.attacker === "a" || b.attacker === "b" ? b.attacker
@@ -710,13 +756,14 @@ function sortBattles(list){
   return list.slice().sort((x,y) =>
     (y.date > x.date ? 1 : y.date < x.date ? -1 : 0) || (y.createdAt - x.createdAt));
 }
+const battlesOf = format => state.battles.filter(b => b.format === format);
 
 /* ============================ storage ============================ */
 /* The page speaks camelCase; the battles table speaks snake_case. Keep the
    translation in one place so the rest of the code never sees column names. */
 function rowToBattle(r){
   return normalise({
-    date:r.date, points:r.points, plan:r.plan, season:r.season,
+    date:r.date, format:r.format, points:r.points, plan:r.plan, season:r.season,
     aName:r.a_name, aFaction:r.a_faction, aVP:r.a_vp, aList:r.a_list,
     bName:r.b_name, bFaction:r.b_faction, bVP:r.b_vp, bList:r.b_list,
     result:r.result, concedeRound:r.concede_round,
@@ -728,13 +775,13 @@ function rowToBattle(r){
    created_at are fixed once logged, and deleted_at is an admin's to set. Send
    anything outside this set on an update and Postgres refuses the whole
    statement, so amend and log are kept as separate calls below. */
-const EDITABLE = ["date","points","plan","season",
+const EDITABLE = ["date","format","points","plan","season",
   "a_name","a_faction","a_vp","a_list","b_name","b_faction","b_vp","b_list",
   "result","concede_round","attacker","first_turn"];
 
 function battleToRow(b){
   return {
-    id:b.id, date:b.date, points:b.points, plan:b.plan, season:b.season,
+    id:b.id, date:b.date, format:b.format, points:b.points, plan:b.plan, season:b.season,
     a_name:b.aName, a_faction:b.aFaction, a_vp:b.aVP, a_list:b.aList,
     b_name:b.bName, b_faction:b.bFaction, b_vp:b.bVP, b_list:b.bList,
     result:b.result, concede_round:b.concedeRound,
@@ -845,6 +892,11 @@ function writeRefused(error){
   return error && (error.code === "42501" || error.code === "PGRST301" ||
     /permission denied|row-level security/i.test(error.message || ""));
 }
+/* The page sends a column the table doesn't have yet — supabase/schema.sql
+   hasn't been re-run since this version of the page went up. */
+function schemaBehind(error){
+  return error && (error.code === "PGRST204" || error.code === "42703");
+}
 
 async function saveBattle(b, isNew){
   if(DB){
@@ -856,6 +908,8 @@ async function saveBattle(b, isNew){
       : await DB.from("battles").update(battleToAmendment(b)).eq("id", b.id);
     if(error) return writeRefused(error)
       ? "The roll would not accept that change."
+      : schemaBehind(error)
+      ? "The shared roll needs its table updated — re-run supabase/schema.sql."
       : "Could not save to the shared roll. Try again in a moment.";
     await pullBattles();
     return true;
@@ -996,7 +1050,9 @@ function battleCard(b){
   const bits = [];
   bits.push('<span class="meta-date">' + esc(fmtDate(b.date)) + '</span>');
   if(b.plan) bits.push('<span><span class="k">Battleplan</span> ' + esc(b.plan) + '</span>');
-  bits.push('<span><span class="k">Points</span> ' + b.points.toLocaleString() + '</span>');
+  bits.push(b.format === "spearhead"
+    ? '<span><span class="k">Format</span> Spearhead</span>'
+    : '<span><span class="k">Points</span> ' + b.points.toLocaleString() + '</span>');
   if(b.attacker){
     const defender = b.attacker === "a" ? "b" : "a";
     bits.push('<span><span class="k">Attacker</span> ' + esc(b[b.attacker+"Name"]) + '</span>');
@@ -1025,11 +1081,15 @@ function armyListDetails(name, text){
 }
 
 /* ============================ views ============================ */
-function renderStandings(players){
-  const wrap = $("#standings-wrap");
+const STANDINGS = {
+  matched:   {wrap:"#standings-wrap",    span:"#standings-span"},
+  spearhead: {wrap:"#sh-standings-wrap", span:"#sh-standings-span"}
+};
+function renderStandings(format, players){
+  const wrap = $(STANDINGS[format].wrap), span = $(STANDINGS[format].span);
   const rows = rankOrder(players);
   wrap.classList.toggle("panel", rows.length > 0);
-  if(!rows.length){ wrap.innerHTML = emptyState(); $("#standings-span").textContent = ""; return; }
+  if(!rows.length){ wrap.innerHTML = emptyState(format); span.textContent = ""; return; }
   let ranked = 0;
   const body = rows.map(p => {
     const isRanked = p.games >= 3;
@@ -1059,38 +1119,59 @@ function renderStandings(players){
       '<th class="r">VP vs</th><th class="r">Diff</th><th class="c">Streak</th><th>Form</th>' +
     '</tr></thead><tbody>' + body + '</tbody></table>';
 
-  const dates = state.battles.map(b => b.date).filter(Boolean).sort();
-  $("#standings-span").textContent = dates.length
+  const dates = battlesOf(format).map(b => b.date).filter(Boolean).sort();
+  span.textContent = dates.length
     ? fmtDate(dates[0]) + " — " + fmtDate(dates[dates.length-1]) : "";
 }
 
-function emptyState(){
+function emptyState(format){
+  if(format === "spearhead") return '<div class="empty">' +
+    '<h3>No Spearhead battles yet</h3>' +
+    '<p>Spearhead games keep a roll of their own, apart from matched play. Enter the first ' +
+    'and its standings and records build themselves from there.</p>' +
+    '<div class="acts">' +
+      '<button type="button" class="btn btn-primary" data-act="muster" data-format="spearhead">Log a Spearhead battle</button>' +
+    '</div></div>';
+  const fresh = !state.battles.length;
   return '<div class="empty">' +
-    '<h3>The roll stands empty</h3>' +
-    '<p>Nothing has been fought yet. Enter your first engagement and the standings, ' +
+    '<h3>' + (fresh ? "The roll stands empty" : "No matched play battles yet") + '</h3>' +
+    '<p>' + (fresh ? "Nothing has been fought yet." : "Only Spearhead battles are on the roll so far.") +
+    ' Enter your first engagement and the standings, ' +
     'records and matchups build themselves from there.</p>' +
     '<div class="acts">' +
-      '<button type="button" class="btn btn-primary" data-act="muster">Log a battle</button>' +
+      '<button type="button" class="btn btn-primary" data-act="muster" data-format="matched">Log a battle</button>' +
       (canSeed() ? '<button type="button" class="btn" data-act="sample">Fill with example battles</button>' : "") +
     '</div></div>';
 }
 
-function renderBattles(){
-  const wrap = $("#battles-wrap");
-  const f = state.filters;
-  const list = state.battles.filter(b =>
+/* Each log's filter selects are named prefix + filter key, e.g. #sf-player. */
+const LOGS = {
+  matched:   {wrap:"#battles-wrap",    prefix:"f-"},
+  spearhead: {wrap:"#sh-battles-wrap", prefix:"sf-"}
+};
+function renderLog(format){
+  const wrap = $(LOGS[format].wrap);
+  const f = state.filters[format];
+  const all = battlesOf(format);
+  const list = all.filter(b =>
     (!f.player || b.aName === f.player || b.bName === f.player) &&
     (!f.faction || b.aFaction === f.faction || b.bFaction === f.faction) &&
     (!f.plan || b.plan === f.plan));
 
-  if(!state.battles.length){ wrap.innerHTML = emptyState(); return; }
+  if(!all.length){ wrap.innerHTML = emptyState(format); return; }
   if(!list.length){
     wrap.innerHTML = '<div class="empty"><h3>No matching battles</h3>' +
       '<p>Nothing on the roll fits those filters.</p>' +
-      '<div class="acts"><button type="button" class="btn" data-act="clear-filters">Reset filters</button></div></div>';
+      '<div class="acts"><button type="button" class="btn" data-act="clear-filters" data-format="' + format +
+      '">Reset filters</button></div></div>';
     return;
   }
   wrap.innerHTML = '<div class="battle-list">' + list.map(battleCard).join("") + '</div>';
+}
+function clearFilters(format){
+  const f = state.filters[format];
+  Object.keys(f).forEach(k => { f[k] = ""; $("#" + LOGS[format].prefix + k).value = ""; });
+  renderLog(format);
 }
 
 function miniTable(title, hint, headLabel, rows, opts){
@@ -1110,28 +1191,58 @@ function miniTable(title, hint, headLabel, rows, opts){
     '</tr></thead><tbody>' + body + '</tbody></table></div></div>';
 }
 
-function renderWarlords(players){
+const FORMAT_LABEL = {matched:"Matched play", spearhead:"Spearhead"};
+
+/* `byFormat` holds each format's players, analysed separately. Every warlord
+   on the roll is listed; the sub-tabs choose which of their two records shows. */
+function renderWarlords(byFormat){
   const picker = $("#warlord-picker");
   const wrap = $("#warlord-wrap");
-  const names = rankOrder(players).map(p => p.name);
+  const format = state.warlordFormat;
+  const players = byFormat[format];
+  const ranked = rankOrder(players).map(p => p.name);
+  const others = [...new Set([...byFormat.matched.keys(), ...byFormat.spearhead.keys()])]
+    .filter(n => !players.has(n)).sort((a,b) => a.localeCompare(b));
+  const names = ranked.concat(others);
 
   if(!names.length){
     picker.innerHTML = "";
-    wrap.innerHTML = emptyState();
+    wrap.innerHTML = emptyState("matched");
     return;
   }
-  if(!state.warlord || !players.has(state.warlord)) state.warlord = names[0];
+  if(!state.warlord || !names.includes(state.warlord)) state.warlord = names[0];
   picker.innerHTML = names.map(n =>
     '<button type="button" class="pick" data-pick="' + esc(n) + '" aria-pressed="' +
     (n === state.warlord) + '">' + esc(n) + '</button>').join("");
 
-  const p = players.get(state.warlord);
-  const byGames = m => [...m.values()].sort((x,y) => y.games - x.games || y.w - x.w);
-  const recent = state.battles.filter(b => b.aName === p.name || b.bName === p.name).slice(0,6);
+  const subtabs = '<div class="subtabs" role="tablist" aria-label="Game format">' +
+    ["matched","spearhead"].map(f => {
+      const mine = byFormat[f].get(state.warlord);
+      return '<button type="button" class="subtab" role="tab" data-wformat="' + f +
+        '" aria-selected="' + (f === format) + '">' + FORMAT_LABEL[f] +
+        '<span class="count">' + (mine ? mine.games : 0) + '</span></button>';
+    }).join("") + '</div>';
 
-  wrap.innerHTML = '<div class="panel">' +
+  const p = players.get(state.warlord);
+  if(!p){
+    wrap.innerHTML = subtabs + '<div class="panel">' +
+      '<div class="hero" style="border-bottom:0"><div>' +
+        '<div class="eyebrow">Warlord · ' + FORMAT_LABEL[format] + '</div>' +
+        '<h2>' + esc(state.warlord) + '</h2>' +
+        '<div class="record">No ' + (format === "spearhead" ? "Spearhead" : "matched play") +
+          ' battles on the roll yet.</div>' +
+      '</div>' +
+      '<div class="bigrate"><button type="button" class="btn btn-primary" data-act="muster" data-format="' +
+        format + '">Log a ' + (format === "spearhead" ? "Spearhead " : "") + 'battle</button></div>' +
+    '</div></div>';
+    return;
+  }
+  const byGames = m => [...m.values()].sort((x,y) => y.games - x.games || y.w - x.w);
+  const recent = battlesOf(format).filter(b => b.aName === p.name || b.bName === p.name).slice(0,6);
+
+  wrap.innerHTML = subtabs + '<div class="panel">' +
     '<div class="hero"><div>' +
-      '<div class="eyebrow">Warlord</div>' +
+      '<div class="eyebrow">Warlord · ' + FORMAT_LABEL[format] + '</div>' +
       '<h2>' + esc(p.name) + '</h2>' +
       '<div class="record">' + p.w + ' won &nbsp;·&nbsp; ' + p.d + ' drawn &nbsp;·&nbsp; ' + p.l +
         ' lost' + (p.streak ? ' &nbsp;·&nbsp; on a ' + p.streak.n + '-battle ' +
@@ -1155,8 +1266,8 @@ function renderWarlords(players){
       "Army", byGames(p.armies), {army:true}) +
     miniTable("Against enemy armies", "Which factions this warlord handles well, and which give trouble.",
       "Enemy army", byGames(p.enemyArmies), {army:true}) +
-    miniTable("By battleplan", "Performance across the scenarios played.",
-      "Battleplan", byGames(p.plans), {}) +
+    (format === "matched" ? miniTable("By battleplan", "Performance across the scenarios played.",
+      "Battleplan", byGames(p.plans), {}) : "") +
     '<div class="subsec"><h3>Recent battles</h3>' +
       '<div class="hint">The last ' + recent.length + ' engagements fought.</div>' +
       '<div class="battle-list">' + recent.map(battleCard).join("") + '</div></div>' +
@@ -1168,37 +1279,58 @@ function tile(label, value){
 }
 
 /* ============================ render orchestration ============================ */
+/* Matched play and Spearhead are analysed separately, so no stat ever mixes
+   the two. Only the name and army suggestions in the form are shared. */
 function renderAll(){
-  const players = analyse(state.battles);
-  const names = [...players.keys()].sort((a,b) => a.localeCompare(b));
-  const factions = [...new Set(state.battles.flatMap(b => [b.aFaction, b.bFaction]).filter(Boolean))].sort();
-  const plans = [...new Set(state.battles.map(b => b.plan).filter(Boolean))].sort();
+  const byFormat = {};
+  ["matched","spearhead"].forEach(format => {
+    const list = battlesOf(format);
+    byFormat[format] = analyse(list);
+    const names = [...byFormat[format].keys()].sort((a,b) => a.localeCompare(b));
+    const factions = [...new Set(list.flatMap(b => [b.aFaction, b.bFaction]).filter(Boolean))].sort();
+    const f = state.filters[format], prefix = "#" + LOGS[format].prefix;
+    f.player = syncSelect($(prefix + "player"), names, f.player, "All warlords");
+    f.faction = syncSelect($(prefix + "faction"), factions, f.faction, "All armies");
+    if(format === "matched"){
+      const plans = [...new Set(list.map(b => b.plan).filter(Boolean))].sort();
+      f.plan = syncSelect($(prefix + "plan"), plans, f.plan, "All battleplans");
+    }
+  });
+  const names = [...new Set(state.battles.flatMap(b => [b.aName, b.bName]).filter(Boolean))]
+    .sort((a,b) => a.localeCompare(b));
+  const factions = [...new Set(state.battles.flatMap(b => [b.aFaction, b.bFaction]).filter(Boolean))];
 
-  $("#ga-count").textContent = state.battles.length
-    ? state.battles.length + (state.battles.length === 1 ? " battle" : " battles") + " · " +
-      names.length + (names.length === 1 ? " warlord" : " warlords")
-    : "";
+  $("#ga-count").textContent = rollCount(names.length);
 
   $("#warlords").innerHTML = names.map(n => '<option value="' + esc(n) + '"></option>').join("");
   $("#factions").innerHTML = Object.keys(FACTIONS).concat(
     factions.filter(f => !FACTIONS[f])).sort()
     .map(f => '<option value="' + esc(f) + '"></option>').join("");
 
-  syncSelect($("#f-player"), names, state.filters.player, "All warlords");
-  syncSelect($("#f-faction"), factions, state.filters.faction, "All armies");
-  syncSelect($("#f-plan"), plans, state.filters.plan, "All battleplans");
-
   paintAdminBtn();
-  renderStandings(players);
-  renderBattles();
-  renderWarlords(players);
+  renderStandings("matched", byFormat.matched);
+  renderStandings("spearhead", byFormat.spearhead);
+  renderLog("matched");
+  renderLog("spearhead");
+  $("#sh-log").hidden = !battlesOf("spearhead").length;
+  renderWarlords(byFormat);
   paintNotice();
+}
+function rollCount(warlords){
+  const plural = (n, one, many) => n + " " + (n === 1 ? one : many);
+  const matched = battlesOf("matched").length, spear = battlesOf("spearhead").length;
+  if(!matched && !spear) return "";
+  const parts = [];
+  if(matched) parts.push(spear ? matched + " matched" : plural(matched, "battle", "battles"));
+  if(spear) parts.push(spear + " spearhead");
+  parts.push(plural(warlords, "warlord", "warlords"));
+  return parts.join(" · ");
 }
 function syncSelect(sel, values, current, allLabel){
   sel.innerHTML = '<option value="">' + allLabel + '</option>' +
     values.map(v => '<option value="' + esc(v) + '">' + esc(v) + '</option>').join("");
   sel.value = values.includes(current) ? current : "";
-  state.filters[sel.id.slice(2)] = sel.value;
+  return sel.value;
 }
 function setView(v){
   state.view = v;
@@ -1208,8 +1340,13 @@ function setView(v){
     s.classList.toggle("active", s.id === "view-" + v));
   window.scrollTo({top:0, behavior:"smooth"});
 }
+/* A name clicked on the Spearhead page opens that warlord's Spearhead record;
+   from the matched play pages, their matched play one. Inside the Warlords tab
+   the format already showing is kept. */
 function openWarlord(name){
   state.warlord = name;
+  if(state.view === "spearhead") state.warlordFormat = "spearhead";
+  else if(state.view !== "warlords") state.warlordFormat = "matched";
   setView("warlords");
   renderAll();
 }
@@ -1264,10 +1401,29 @@ function refreshSideLabels(){
   $("#c-b").className = "combatant ga-" + ga(canon(M.bFaction.value, Object.keys(FACTIONS)));
 }
 
-function openMuster(battle){
+/* Spearhead is chosen from the points list. It hides what Spearhead doesn't
+   record — the season, battleplan and army lists — without clearing them, so
+   switching back before saving loses nothing. */
+const isSpearhead = () => M.points.value === "spearhead";
+function applyFormat(){
+  const spear = isSpearhead();
+  document.querySelectorAll("#muster .matched-only").forEach(el => (el.hidden = spear));
+  $("#m-spearhead-note").hidden = !spear;
+  if(!state.editing) $("#sheet-title").textContent = spear ? "Log a Spearhead battle" : "Log a battle";
+}
+
+/* Which format a new battle starts as: whatever the page being looked at is
+   about, so "Log a battle" on the Spearhead tab opens a Spearhead battle. */
+function contextFormat(){
+  return state.view === "spearhead" ||
+    (state.view === "warlords" && state.warlordFormat === "spearhead") ? "spearhead" : "matched";
+}
+
+function openMuster(battle, format){
   state.editing = battle ? battle.id : null;
-  const b = battle || normalise({date:today()});
-  M.date.value = b.date; M.points.value = String(b.points);
+  const b = battle || normalise({date:today(), format: format || contextFormat()});
+  M.date.value = b.date;
+  M.points.value = b.format === "spearhead" ? "spearhead" : String(b.points);
   const initSeason = (b.season === "2026-27" || b.season === "2025-26") ? b.season : seasonForPlan(b.plan);
   M.season.value = initSeason;
   refreshPlanOptions(initSeason, b.plan);
@@ -1280,12 +1436,13 @@ function openMuster(battle){
   M.concedeRound.value = b.concedeRound || "";
   refreshSideLabels();
   M.attacker.value = b.attacker; M.first.value = b.first;
-  $("#sheet-title").textContent = battle ? "Amend the record" : "Log a battle";
+  if(battle) $("#sheet-title").textContent = "Amend the record";
+  applyFormat();
   $("#m-save").textContent = battle ? "Save changes" : "Enter into the roll";
   $("#m-delete").hidden = !battle || (DB && !state.isAdmin);
   $("#overlay").hidden = false;
   document.body.style.overflow = "hidden";
-  setTimeout(() => (battle ? M.season : M.aName).focus(), 30);
+  setTimeout(() => (battle ? (isSpearhead() ? M.points : M.season) : M.aName).focus(), 30);
 }
 function closeMuster(){
   $("#overlay").hidden = true;
@@ -1294,6 +1451,7 @@ function closeMuster(){
 }
 
 M.season.addEventListener("change", () => refreshPlanOptions(M.season.value, ""));
+M.points.addEventListener("change", applyFormat);
 
 $("#muster").addEventListener("submit", async e => {
   e.preventDefault();
@@ -1311,6 +1469,7 @@ $("#muster").addEventListener("submit", async e => {
   const battle = normalise({
     id: state.editing || uid(),
     date: M.date.value || today(),
+    format: isSpearhead() ? "spearhead" : "matched",
     points: +M.points.value,
     season: M.season.value,
     plan: M.plan.value,
@@ -1406,21 +1565,23 @@ document.addEventListener("keydown", e => {
 document.querySelectorAll(".tab").forEach(t =>
   t.addEventListener("click", () => setView(t.dataset.view)));
 
-["f-player","f-faction","f-plan"].forEach(id => {
-  $("#" + id).addEventListener("change", e => {
-    state.filters[id.slice(2)] = e.target.value;
-    renderBattles();
+Object.keys(LOGS).forEach(format => {
+  const prefix = "#" + LOGS[format].prefix;
+  Object.keys(state.filters[format]).forEach(k => {
+    $(prefix + k).addEventListener("change", e => {
+      state.filters[format][k] = e.target.value;
+      renderLog(format);
+    });
   });
-});
-$("#f-clear").addEventListener("click", () => {
-  state.filters = {player:"", faction:"", plan:""};
-  ["f-player","f-faction","f-plan"].forEach(id => ($("#" + id).value = ""));
-  renderBattles();
+  $(prefix + "clear").addEventListener("click", () => clearFilters(format));
 });
 
 document.addEventListener("click", e => {
   const pick = e.target.closest("[data-pick]");
   if(pick){ state.warlord = pick.dataset.pick; renderAll(); return; }
+
+  const sub = e.target.closest("[data-wformat]");
+  if(sub){ state.warlordFormat = sub.dataset.wformat; renderAll(); return; }
 
   const edit = e.target.closest("[data-edit]");
   if(edit){
@@ -1433,8 +1594,8 @@ document.addEventListener("click", e => {
 
   const act = e.target.closest("[data-act]");
   if(!act) return;
-  if(act.dataset.act === "muster") openMuster(null);
-  if(act.dataset.act === "clear-filters") $("#f-clear").click();
+  if(act.dataset.act === "muster") openMuster(null, act.dataset.format);
+  if(act.dataset.act === "clear-filters") clearFilters(act.dataset.format);
   if(act.dataset.act === "sample") seedExamples();
   if(act.dataset.act === "unseed") removeExamples();
 });

@@ -1,8 +1,11 @@
 # Realmgate-Battle-Roll
 
 A shared Age of Sigmar battle ledger: standings, per-warlord records, and a log
-of every engagement. The whole app is one self-contained `index.html`, served
-as a static page from GitHub Pages, with the shared roll kept in Supabase.
+of every engagement. Matched play and Spearhead are kept on separate rolls —
+Spearhead has its own tab, each warlord's profile switches between the two, and
+no stat ever mixes them. The whole app is one self-contained `index.html`,
+served as a static page from GitHub Pages, with the shared roll kept in
+Supabase.
 
 ## Who can do what
 
@@ -30,6 +33,12 @@ deletion wearing a different hat. The grants in `schema.sql` are what stop it.
 
 Supabase dashboard → **SQL Editor → New query**, paste
 [`supabase/schema.sql`](supabase/schema.sql), run it. Safe to re-run later.
+
+Re-run it whenever the file changes, before the new page goes live. It upgrades
+an existing table in place and keeps every record — for example, it adds the
+`format` column that Spearhead tracking needs, and marks every battle already
+on the roll as matched play. Until it has been re-run, saving a battle fails
+with a message saying so.
 
 Let the file create the tables — don't build them by hand in the table editor.
 The page and the policies both depend on the exact column names and types, and
@@ -106,6 +115,20 @@ curl -X POST "$SUPABASE_URL/rest/v1/battles" \
 
 `id` must be unique and is yours to choose; `created_at` is epoch milliseconds
 and only breaks ties between battles on the same date.
+
+`format` defaults to `matched`. A Spearhead battle sets it to `spearhead` and
+leaves out the points level, battleplan, season and army lists, which Spearhead
+doesn't record:
+
+```bash
+curl -X POST "$SUPABASE_URL/rest/v1/battles" \
+  -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"b-2026-05-06-01","date":"2026-05-06","format":"spearhead","points":null,
+       "a_name":"Ravik","a_faction":"Stormcast Eternals","a_vp":18,
+       "b_name":"Terrik","b_faction":"Skaven","b_vp":11,
+       "result":"a","created_at":1767657600000}'
+```
 
 **Retiring records or backfilling `created_at`** needs the secret key, as in
 the backup workflow.

@@ -54,7 +54,13 @@ create table if not exists public.battles (
   id            text        primary key,
 
   date          date        not null,
-  points        integer     not null default 2000
+  -- Matched play and Spearhead are ranked apart; the page never merges their
+  -- stats.
+  format        text        not null default 'matched'
+                            check (format in ('matched', 'spearhead')),
+  -- Matched play only. Spearhead armies are fixed, so a Spearhead battle has
+  -- no points level and stores null here.
+  points        integer              default 2000
                             check (points in (1000, 1500, 2000, 2500, 3000)),
   plan          text        not null default '' check (length(plan) <= 200),
   season        text        not null default ''
@@ -88,8 +94,17 @@ create table if not exists public.battles (
   deleted_at    timestamptz
 );
 
--- For anyone upgrading from the first version of this schema.
+-- For anyone upgrading from an earlier version of this schema. Existing rows
+-- are all matched play, which is what the format default fills in.
 alter table public.battles add column if not exists deleted_at timestamptz;
+alter table public.battles add column if not exists format text not null default 'matched'
+  check (format in ('matched', 'spearhead'));
+alter table public.battles alter column points drop not null;
+
+-- A matched play battle still needs its points level.
+alter table public.battles drop constraint if exists battles_matched_has_points;
+alter table public.battles add constraint battles_matched_has_points
+  check (format = 'spearhead' or points is not null);
 
 create index if not exists battles_live_idx
   on public.battles (date desc, created_at desc) where deleted_at is null;
@@ -171,7 +186,7 @@ grant select, insert on public.battles to anon, authenticated;
 -- Note the absence of deleted_at, id and created_at: a visitor may correct the
 -- details of a battle, but cannot retire it, re-key it, or reorder the roll.
 grant update (
-  date, points, plan, season,
+  date, format, points, plan, season,
   a_name, a_faction, a_vp, a_list,
   b_name, b_faction, b_vp, b_list,
   result, concede_round, attacker, first_turn
